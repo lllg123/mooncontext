@@ -1,0 +1,75 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "lllg123/mooncontext/diagnostics"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+
+// Errors
+
+// Types and methods
+pub(all) struct Diagnostic {
+  severity : Severity
+  code : String
+  message : String
+  primary : Span
+  labels : Array[Label]
+  help : String?
+} derive(@debug.Debug)
+pub fn Diagnostic::new(Severity, code~ : String, message~ : String, primary~ : Span, labels? : Array[Label], help? : String) -> Self
+
+pub(all) struct Label {
+  span : Span
+  message : String
+} derive(Eq, @debug.Debug)
+pub fn Label::new(Span, String) -> Self
+
+pub(all) struct LocatedSpan {
+  path : String
+  start : Position
+  end : Position
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Position {
+  line : Int
+  column : Int
+} derive(Eq, @debug.Debug)
+
+pub(all) enum Severity {
+  Error
+  Warning
+} derive(Eq, @debug.Debug)
+
+pub struct SourceFile {
+  path : String
+  text : String
+  lines : Array[String]
+  line_starts : Array[Int]
+  char_length : Int
+}
+
+pub(all) struct SourceId {
+  value : Int
+} derive(Eq, @debug.Debug)
+
+pub struct SourceMap {
+  files : Array[SourceFile]
+}
+pub fn SourceMap::add(Self, String, String) -> SourceId
+pub fn SourceMap::format(Self, Diagnostic) -> String
+pub fn SourceMap::locate(Self, Span) -> LocatedSpan?
+pub fn SourceMap::new() -> Self
+pub fn SourceMap::text(Self, SourceId) -> String?
+
+pub(all) struct Span {
+  source : SourceId
+  start : Int
+  end : Int
+} derive(Eq, @debug.Debug)
+pub fn Span::new(SourceId, start~ : Int, end~ : Int) -> Self
+
+// Type aliases
+
+// Traits
