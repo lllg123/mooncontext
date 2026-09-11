@@ -1,0 +1,5 @@
+import {
+  "lllg123/mooncontext",
+}
+
+pkgtype(kind: "executable")

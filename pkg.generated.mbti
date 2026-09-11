@@ -1,0 +1,13 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "lllg123/mooncontext"
+
+// Values
+pub fn version() -> String
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits
