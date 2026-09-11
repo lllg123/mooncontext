@@ -4,9 +4,16 @@ MoonContext is a deterministic context compiler for LLM and agent workflows,
 implemented in MoonBit. The project is being developed as a sequence of small,
 tested compiler stages.
 
-The first milestone provides a buildable library, a runnable CLI, and a
-black-box smoke test. The context language and compilation pipeline will be
-defined in the next milestone.
+The project currently provides a buildable library, a runnable CLI, and a
+black-box smoke test. The draft v0.1 language and compiler behavior are now
+specified; implementation of the compiler stages follows that contract.
+
+## Design documents
+
+- [Context language](docs/context-language.md)
+- [Compiler pipeline](docs/compiler-pipeline.md)
+- [Diagnostics](docs/diagnostics.md)
+- [Design examples](docs/examples.md)
 
 ## Requirements
 
