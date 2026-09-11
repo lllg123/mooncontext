@@ -1,0 +1,40 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "lllg123/mooncontext/syntax"
+
+import {
+  "lllg123/mooncontext/diagnostics",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn lex(@diagnostics.SourceId, String) -> LexResult
+
+// Errors
+
+// Types and methods
+pub(all) struct LexResult {
+  tokens : Array[Token]
+  diagnostics : Array[@diagnostics.Diagnostic]
+} derive(@debug.Debug)
+
+pub(all) struct Token {
+  kind : TokenKind
+  span : @diagnostics.Span
+} derive(Eq, @debug.Debug)
+
+pub(all) enum TokenKind {
+  Identifier(String)
+  StringLiteral(String)
+  IntegerLiteral(String)
+  LeftBrace
+  RightBrace
+  Equal
+  EqualEqual
+  BangEqual
+  Semicolon
+  EndOfFile
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits
