@@ -8,11 +8,36 @@ import {
 }
 
 // Values
+pub fn evaluate(@syntax.DocumentSyntax, Array[Definition]) -> EvaluationResult
+
 pub fn validate(@diagnostics.SourceId, @syntax.DocumentSyntax, SourceKind) -> ValidationResult
 
 // Errors
 
 // Types and methods
+pub(all) struct Definition {
+  name : String
+  value : String
+} derive(Eq, @debug.Debug)
+
+pub(all) enum EvaluatedContent {
+  InlineText(String, @diagnostics.Span)
+  FileReference(String, @diagnostics.Span)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct EvaluatedSection {
+  name : String
+  content : EvaluatedContent
+  priority : Int
+  required : Bool
+  span : @diagnostics.Span
+} derive(Eq, @debug.Debug)
+
+pub(all) struct EvaluationResult {
+  sections : Array[EvaluatedSection]
+  diagnostics : Array[@diagnostics.Diagnostic]
+} derive(@debug.Debug)
+
 pub(all) enum SourceKind {
   Root
   Included
