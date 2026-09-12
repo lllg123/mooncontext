@@ -1,0 +1,39 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "lllg123/mooncontext/resolver"
+
+import {
+  "lllg123/mooncontext/diagnostics",
+  "lllg123/mooncontext/syntax",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn resolve(String, Array[SourceInput]) -> ResolveResult
+
+// Errors
+
+// Types and methods
+pub(all) struct ResolveResult {
+  document : ResolvedDocument
+  diagnostics : Array[@diagnostics.Diagnostic]
+} derive(@debug.Debug)
+
+pub(all) struct ResolvedDocument {
+  declarations : Array[@syntax.DeclarationSyntax]
+  sources : Array[ResolvedSource]
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ResolvedSource {
+  id : @diagnostics.SourceId
+  path : String
+  text : String
+} derive(Eq, @debug.Debug)
+
+pub(all) struct SourceInput {
+  path : String
+  text : String
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits
