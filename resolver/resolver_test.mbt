@@ -65,6 +65,72 @@ test "rejects absolute and escaping include paths" {
 }
 
 ///|
+test "rejects expansion and device include paths" {
+  let root =
+    #|context "unsafe";
+    #|include "$HOME/shared.ctx";
+    #|include "%TEMP%/shared.ctx";
+    #|include "NUL.ctx";
+    #|include "shared/CoM1.txt";
+    #|include "shared/[draft].ctx";
+    #|include "shared/name.";
+  let result = @resolver.resolve("root.ctx", [source("root.ctx", root)])
+  assert_eq(diagnostic_codes(result), [
+    "E3003", "E3003", "E3003", "E3003", "E3003", "E3003",
+  ])
+}
+
+///|
+test "normalizes safe file content paths relative to their source" {
+  let root =
+    #|context "content";
+    #|include "shared/base.ctx";
+  let shared =
+    #|section "body" { file = "../content/./prompt.txt"; }
+  let result = @resolver.resolve("root.ctx", [
+    source("root.ctx", root),
+    source("shared/base.ctx", shared),
+  ])
+  assert_eq(result.diagnostics.length(), 0)
+  guard result.document.declarations[1]
+    is @syntax.DeclarationSyntax::Section(
+      { contents: [@syntax.SectionContentSyntax::File(path, _)], .. }
+    ) else {
+    fail("expected one file-backed section")
+  }
+  assert_eq(path.value, "content/prompt.txt")
+}
+
+///|
+test "rejects file content paths outside the compilation root" {
+  let root =
+    #|context "content";
+    #|include "shared/base.ctx";
+  let shared =
+    #|section "body" { file = "../../secret.txt"; }
+  let result = @resolver.resolve("root.ctx", [
+    source("root.ctx", root),
+    source("shared/base.ctx", shared),
+  ])
+  assert_eq(diagnostic_codes(result), ["E3003"])
+  assert_eq(result.document.declarations.length(), 1)
+}
+
+///|
+test "uses the entry directory as the default compilation root" {
+  let root =
+    #|context "nested";
+    #|include "../outside.ctx";
+    #|section "body" { file = "../secret.txt"; }
+  let result = @resolver.resolve("project/root.ctx", [
+    source("project/root.ctx", root),
+    source("outside.ctx", "let leaked = \"yes\";"),
+  ])
+  assert_eq(diagnostic_codes(result), ["E3003", "E3003"])
+  assert_eq(result.document.declarations.length(), 1)
+}
+
+///|
 test "detects an include cycle before repeated inclusion" {
   let root =
     #|context "cycle";

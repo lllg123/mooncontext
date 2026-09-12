@@ -1,5 +1,6 @@
 ///|
 priv struct Resolver {
+  compilation_root : String
   source_texts : Map[String, String]
   source_ids : Map[String, @diagnostics.SourceId]
   sources : Array[ResolvedSource]
@@ -80,6 +81,15 @@ fn Resolver::resolve_include(
     )
     return
   }
+  if !path_is_within(self.compilation_root, path) {
+    self.add_error(
+      "E3003",
+      "include path is absolute or escapes the compilation root",
+      include_decl.path.span,
+      help="use a relative path that remains inside the compilation root",
+    )
+    return
+  }
   if self.active_paths.any(active => active == path) {
     self.add_error(
       "E3002",
@@ -112,6 +122,50 @@ fn Resolver::resolve_include(
 }
 
 ///|
+fn Resolver::secure_declaration(
+  self : Resolver,
+  containing_path : String,
+  declaration : @syntax.DeclarationSyntax,
+) -> @syntax.DeclarationSyntax? {
+  guard declaration is Section(section) else { return Some(declaration) }
+  let contents : Array[@syntax.SectionContentSyntax] = []
+  let mut valid = true
+  for content in section.contents {
+    match content {
+      Text(_, _) => contents.push(content)
+      File(path, span) => {
+        let base = parent_path(containing_path)
+        match normalize_relative_path(base, path.value) {
+          Some(value) if path_is_within(self.compilation_root, value) =>
+            contents.push(File({ value, span: path.span, }, span))
+          _ => {
+            self.add_error(
+              "E3003",
+              "content path is absolute or escapes the compilation root",
+              path.span,
+              help="use a relative path that remains inside the compilation root",
+            )
+            valid = false
+          }
+        }
+      }
+    }
+  }
+  if valid {
+    Some(
+      Section({
+        name: section.name,
+        modifiers: section.modifiers,
+        contents,
+        span: section.span,
+      }),
+    )
+  } else {
+    None
+  }
+}
+
+///|
 fn Resolver::resolve_file(
   self : Resolver,
   path : String,
@@ -128,7 +182,11 @@ fn Resolver::resolve_file(
     for declaration in parsed.document.declarations {
       match declaration {
         Include(include_decl) => self.resolve_include(path, include_decl)
-        value => self.declarations.push(value)
+        value =>
+          match self.secure_declaration(path, value) {
+            Some(secured) => self.declarations.push(secured)
+            None => ()
+          }
       }
     }
   }
@@ -151,8 +209,9 @@ fn build_source_table(inputs : Array[SourceInput]) -> Map[String, String] {
 /// Resolve includes depth-first at their declaration position.
 ///
 /// Source inputs are addressed relative to the compilation root. Resolution
-/// rejects absolute and escaping paths, missing files, cycles, and repeated
-/// inclusion after normalization.
+/// rejects absolute, escaping, expansion, and device paths for both includes
+/// and file-backed section content. It also reports missing files, cycles, and
+/// repeated inclusion after normalization.
 ///
 /// ```mbt check
 /// test {
@@ -170,7 +229,13 @@ pub fn resolve(
   entry_path : String,
   inputs : Array[SourceInput],
 ) -> ResolveResult {
+  let normalized_entry = normalize_relative_path("", entry_path)
+  let compilation_root = match normalized_entry {
+    Some(path) => parent_path(path)
+    None => ""
+  }
   let resolver = Resolver::{
+    compilation_root,
     source_texts: build_source_table(inputs),
     source_ids: Map([]),
     sources: [],
@@ -180,7 +245,7 @@ pub fn resolve(
     active_paths: [],
     active_edges: [],
   }
-  match normalize_relative_path("", entry_path) {
+  match normalized_entry {
     None =>
       resolver.add_error(
         "E3003",
