@@ -1,0 +1,27 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "lllg123/mooncontext/semantics"
+
+import {
+  "lllg123/mooncontext/diagnostics",
+  "lllg123/mooncontext/syntax",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn validate(@diagnostics.SourceId, @syntax.DocumentSyntax, SourceKind) -> ValidationResult
+
+// Errors
+
+// Types and methods
+pub(all) enum SourceKind {
+  Root
+  Included
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ValidationResult {
+  diagnostics : Array[@diagnostics.Diagnostic]
+} derive(@debug.Debug)
+
+// Type aliases
+
+// Traits

@@ -50,6 +50,7 @@ Initial codes reserved by the v0.1 contract:
 | `E4004` | missing, repeated, or misplaced root configuration |
 | `E4005` | section does not contain exactly one content declaration |
 | `E4006` | budget is zero or outside the supported integer range |
+| `E4007` | declaration name or attribute is invalid |
 | `E5001` | required rendered content exceeds the character budget |
 | `W6001` | declared source variable is never referenced |
 
