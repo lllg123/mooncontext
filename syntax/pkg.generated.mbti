@@ -9,13 +9,105 @@ import {
 // Values
 pub fn lex(@diagnostics.SourceId, String) -> LexResult
 
+pub fn parse(@diagnostics.SourceId, String) -> ParseResult
+
 // Errors
 
 // Types and methods
+pub(all) struct BudgetDecl {
+  unit : IdentifierSyntax
+  amount : IntegerSyntax
+  span : @diagnostics.Span
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ConditionOperator {
+  Equal
+  NotEqual
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ConditionSyntax {
+  variable : IdentifierSyntax
+  operator : ConditionOperator
+  value : StringSyntax
+  span : @diagnostics.Span
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ContextDecl {
+  name : StringSyntax
+  span : @diagnostics.Span
+} derive(Eq, @debug.Debug)
+
+pub(all) enum DeclarationSyntax {
+  Context(ContextDecl)
+  Budget(BudgetDecl)
+  Output(OutputDecl)
+  Let(LetDecl)
+  Include(IncludeDecl)
+  Section(SectionDecl)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct DocumentSyntax {
+  declarations : Array[DeclarationSyntax]
+} derive(Eq, @debug.Debug)
+
+pub(all) struct IdentifierSyntax {
+  value : String
+  span : @diagnostics.Span
+} derive(Eq, @debug.Debug)
+
+pub(all) struct IncludeDecl {
+  path : StringSyntax
+  span : @diagnostics.Span
+} derive(Eq, @debug.Debug)
+
+pub(all) struct IntegerSyntax {
+  digits : String
+  span : @diagnostics.Span
+} derive(Eq, @debug.Debug)
+
+pub(all) struct LetDecl {
+  name : IdentifierSyntax
+  value : StringSyntax
+  span : @diagnostics.Span
+} derive(Eq, @debug.Debug)
+
 pub(all) struct LexResult {
   tokens : Array[Token]
   diagnostics : Array[@diagnostics.Diagnostic]
 } derive(@debug.Debug)
+
+pub(all) struct OutputDecl {
+  format : IdentifierSyntax
+  span : @diagnostics.Span
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ParseResult {
+  document : DocumentSyntax
+  diagnostics : Array[@diagnostics.Diagnostic]
+} derive(@debug.Debug)
+
+pub(all) enum SectionContentSyntax {
+  Text(StringSyntax, @diagnostics.Span)
+  File(StringSyntax, @diagnostics.Span)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct SectionDecl {
+  name : StringSyntax
+  modifiers : Array[SectionModifierSyntax]
+  contents : Array[SectionContentSyntax]
+  span : @diagnostics.Span
+} derive(Eq, @debug.Debug)
+
+pub(all) enum SectionModifierSyntax {
+  Priority(IntegerSyntax, @diagnostics.Span)
+  Required(@diagnostics.Span)
+  When(ConditionSyntax)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct StringSyntax {
+  value : String
+  span : @diagnostics.Span
+} derive(Eq, @debug.Debug)
 
 pub(all) struct Token {
   kind : TokenKind
