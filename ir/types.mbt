@@ -39,3 +39,27 @@ pub(all) struct Context {
   char_budget : Int
   sections : Array[Section]
 } derive(Debug, Eq)
+
+///|
+/// Stable reason why an active section was left out of a selection plan.
+pub(all) enum OmissionReason {
+  BudgetLimit
+} derive(Debug, Eq)
+
+///|
+/// One active section omitted from the final context.
+pub(all) struct OmittedSection {
+  section_id : String
+  reason : OmissionReason
+} derive(Debug, Eq)
+
+///|
+/// Deterministic budget decision consumed by the renderer.
+pub(all) struct SelectionPlan {
+  selected_section_ids : Array[String]
+  omitted_sections : Array[OmittedSection]
+  required_chars : Int
+  optional_chars : Int
+  total_chars : Int
+  remaining_chars : Int
+} derive(Debug, Eq)

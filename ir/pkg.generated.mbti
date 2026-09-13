@@ -26,6 +26,15 @@ pub(all) struct Context {
   sections : Array[Section]
 } derive(Eq, @debug.Debug)
 
+pub(all) enum OmissionReason {
+  BudgetLimit
+} derive(Eq, @debug.Debug)
+
+pub(all) struct OmittedSection {
+  section_id : String
+  reason : OmissionReason
+} derive(Eq, @debug.Debug)
+
 pub(all) enum OutputFormat {
   Markdown
   PlainText
@@ -44,6 +53,15 @@ pub(all) struct Section {
   priority : Int
   required : Bool
   provenance : Array[ProvenanceSegment]
+} derive(Eq, @debug.Debug)
+
+pub(all) struct SelectionPlan {
+  selected_section_ids : Array[String]
+  omitted_sections : Array[OmittedSection]
+  required_chars : Int
+  optional_chars : Int
+  total_chars : Int
+  remaining_chars : Int
 } derive(Eq, @debug.Debug)
 
 // Type aliases

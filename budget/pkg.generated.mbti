@@ -1,0 +1,23 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "lllg123/mooncontext/budget"
+
+import {
+  "lllg123/mooncontext/diagnostics",
+  "lllg123/mooncontext/ir",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn allocate(@ir.Context) -> AllocationResult
+
+// Errors
+
+// Types and methods
+pub(all) struct AllocationResult {
+  plan : @ir.SelectionPlan?
+  diagnostics : Array[@diagnostics.Diagnostic]
+} derive(@debug.Debug)
+
+// Type aliases
+
+// Traits
