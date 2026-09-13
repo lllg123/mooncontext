@@ -1,0 +1,51 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "lllg123/mooncontext/provenance"
+
+import {
+  "lllg123/mooncontext/diagnostics",
+  "lllg123/mooncontext/ir",
+  "lllg123/mooncontext/resolver",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn emit(@ir.Context, @ir.SelectionPlan?, Array[@resolver.ResolvedSource], Array[@diagnostics.Diagnostic]) -> BuildOutput
+
+// Errors
+
+// Types and methods
+pub(all) struct BuildManifest {
+  context_identity : String
+  inputs : Array[SourceFile]
+  output : @ir.OutputFormat
+  char_budget : Int
+  selection : @ir.SelectionPlan?
+  diagnostics : Array[@diagnostics.Diagnostic]
+} derive(@debug.Debug)
+
+pub(all) struct BuildOutput {
+  artifact : String?
+  source_map : SourceMap
+  manifest : BuildManifest
+} derive(@debug.Debug)
+
+pub(all) struct SourceFile {
+  id : @diagnostics.SourceId
+  path : String
+} derive(Eq, @debug.Debug)
+
+pub(all) struct SourceMap {
+  files : Array[SourceFile]
+  mappings : Array[SourceMapping]
+} derive(Eq, @debug.Debug)
+
+pub(all) struct SourceMapping {
+  section_id : String
+  generated_start : Int
+  generated_end : Int
+  source : @diagnostics.Span
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits

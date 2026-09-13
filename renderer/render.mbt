@@ -31,6 +31,18 @@ fn write_content(output : StringBuilder, content : @ir.Content) -> Unit {
 }
 
 ///|
+fn content_length(content : @ir.Content) -> Int {
+  let value = match content {
+    Inline(value) | File(value) => value
+  }
+  let mut length = 0
+  for _ in value {
+    length += 1
+  }
+  length
+}
+
+///|
 fn write_section(
   output : StringBuilder,
   format : @ir.OutputFormat,
@@ -43,6 +55,21 @@ fn write_section(
   }
   write_content(output, section.content)
 }
+
+///|
+/// One selected section's half-open content range in a rendered artifact.
+pub(all) struct RenderedSection {
+  section_id : String
+  content_start : Int
+  content_end : Int
+} derive(Debug, Eq)
+
+///|
+/// Rendered text together with section content offsets.
+pub(all) struct RenderedArtifact {
+  text : String
+  sections : Array[RenderedSection]
+} derive(Debug, Eq)
 
 ///|
 /// Render selected context sections as deterministic Markdown or plain text.
@@ -77,18 +104,43 @@ fn write_section(
 ///   assert_eq(render(context, plan), "hello\n")
 /// }
 /// ```
-pub fn render(context : @ir.Context, plan : @ir.SelectionPlan) -> String {
+pub fn render_with_layout(
+  context : @ir.Context,
+  plan : @ir.SelectionPlan,
+) -> RenderedArtifact {
   let sections = source_ordered(context, plan)
   if sections.length() == 0 {
-    return ""
+    return { text: "", sections: [], }
   }
   let output = StringBuilder()
+  let layout : Array[RenderedSection] = []
+  let mut offset = 0
   for index, section in sections {
     if index > 0 {
       output.write_string("\n\n")
+      offset += 2
     }
+    if context.output == Markdown {
+      offset += 5
+      for _ in section.name {
+        offset += 1
+      }
+    }
+    let content_start = offset
     write_section(output, context.output, section)
+    offset += content_length(section.content)
+    layout.push({
+      section_id: section.name,
+      content_start,
+      content_end: offset,
+    })
   }
   output.write_char('\n')
-  output.to_string()
+  { text: output.to_string(), sections: layout, }
+}
+
+///|
+/// Render selected sections and return the artifact text.
+pub fn render(context : @ir.Context, plan : @ir.SelectionPlan) -> String {
+  render_with_layout(context, plan).text
 }

@@ -3,14 +3,27 @@ package "lllg123/mooncontext/renderer"
 
 import {
   "lllg123/mooncontext/ir",
+  "moonbitlang/core/debug",
 }
 
 // Values
 pub fn render(@ir.Context, @ir.SelectionPlan) -> String
 
+pub fn render_with_layout(@ir.Context, @ir.SelectionPlan) -> RenderedArtifact
+
 // Errors
 
 // Types and methods
+pub(all) struct RenderedArtifact {
+  text : String
+  sections : Array[RenderedSection]
+} derive(Eq, @debug.Debug)
+
+pub(all) struct RenderedSection {
+  section_id : String
+  content_start : Int
+  content_end : Int
+} derive(Eq, @debug.Debug)
 
 // Type aliases
 
