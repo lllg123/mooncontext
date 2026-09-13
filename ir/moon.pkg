@@ -1,0 +1,6 @@
+import {
+  "lllg123/mooncontext/diagnostics",
+  "lllg123/mooncontext/semantics",
+  "lllg123/mooncontext/syntax",
+  "moonbitlang/core/string",
+}

@@ -1,0 +1,51 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "lllg123/mooncontext/ir"
+
+import {
+  "lllg123/mooncontext/diagnostics",
+  "lllg123/mooncontext/semantics",
+  "lllg123/mooncontext/syntax",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn lower(@syntax.DocumentSyntax, @semantics.EvaluationResult) -> Context?
+
+// Errors
+
+// Types and methods
+pub(all) enum Content {
+  Inline(String)
+  File(String)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Context {
+  identity : String
+  output : OutputFormat
+  char_budget : Int
+  sections : Array[Section]
+} derive(Eq, @debug.Debug)
+
+pub(all) enum OutputFormat {
+  Markdown
+  PlainText
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ProvenanceSegment {
+  content_start : Int
+  content_end : Int
+  source : @diagnostics.Span
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Section {
+  name : String
+  content : Content
+  source_ordinal : Int
+  priority : Int
+  required : Bool
+  provenance : Array[ProvenanceSegment]
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits
