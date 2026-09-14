@@ -107,3 +107,23 @@ test "reports invalid escapes and unterminated strings" {
   assert_eq(trailing_slash.diagnostics.length(), 1)
   assert_eq(trailing_slash.diagnostics[0].code, "E1002")
 }
+
+///|
+test "handles empty input and Unicode escape boundaries" {
+  let empty = @syntax.lex(source_id(), "")
+  assert_eq(empty.diagnostics.length(), 0)
+  assert_eq(empty.tokens.length(), 1)
+  assert_eq(
+    empty.tokens[0].span,
+    @diagnostics.Span::new(source_id(), start=0, end=0),
+  )
+
+  let escapes = @syntax.lex(
+    source_id(),
+    "\"\\u{10FFFF}\" \"\\u{D800}\" \"\\u{110000}\" \"\\u{}\"",
+  )
+  assert_eq(escapes.diagnostics.length(), 3)
+  assert_true(escapes.diagnostics.all(item => item.code == "E1003"))
+  assert_true(escapes.tokens[0].kind is @syntax.TokenKind::StringLiteral(_))
+  assert_true(escapes.tokens[4].kind is @syntax.TokenKind::EndOfFile)
+}

@@ -77,3 +77,34 @@ test "preserves lexical diagnostics while parsing later declarations" {
     }),
   )
 }
+
+///|
+test "handles empty input and missing section terminators at EOF" {
+  let empty = @syntax.parse(source_id(), "")
+  assert_eq(empty.diagnostics.length(), 0)
+  assert_eq(empty.document.declarations.length(), 0)
+
+  let incomplete = @syntax.parse(
+    source_id(),
+    "section \"body\" { text = \"open\";",
+  )
+  assert_true(
+    incomplete.diagnostics.any(diagnostic => diagnostic.code == "E2002"),
+  )
+  guard incomplete.document.declarations
+    is [@syntax.DeclarationSyntax::Section(section)] else {
+    fail("expected the incomplete section to be recovered")
+  }
+  assert_eq(section.contents.length(), 1)
+}
+
+///|
+test "continues after a stray closing brace" {
+  let result = @syntax.parse(source_id(), "} output text;")
+  assert_eq(result.diagnostics.map(item => item.code), ["E2001"])
+  assert_true(
+    result.document.declarations.any(declaration => {
+      declaration is @syntax.DeclarationSyntax::Output(_)
+    }),
+  )
+}

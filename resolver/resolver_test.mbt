@@ -87,6 +87,17 @@ test "rejects absolute and escaping include paths" {
 }
 
 ///|
+test "rejects empty include paths and paths that normalize to the root" {
+  let root =
+    #|context "unsafe";
+    #|include "";
+    #|include ".";
+    #|include "sub/..";
+  let result = @resolver.resolve("root.ctx", [source("root.ctx", root)])
+  assert_eq(diagnostic_codes(result), ["E3003", "E3003", "E3003"])
+}
+
+///|
 test "rejects expansion and device include paths" {
   let root =
     #|context "unsafe";

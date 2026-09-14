@@ -25,6 +25,46 @@ test "normalizes and locates a multi-line Unicode range" {
 }
 
 ///|
+test "accepts empty-file EOF spans and rejects invalid ranges" {
+  let sources = @diagnostics.SourceMap::new()
+  let empty_source = sources.add("empty.ctx", "")
+  guard sources.locate(@diagnostics.Span::new(empty_source, start=0, end=0))
+    is Some(location) else {
+    fail("expected the empty-file EOF position to be valid")
+  }
+  assert_eq(location.start, { line: 1, column: 1, })
+  assert_eq(location.end, { line: 1, column: 1, })
+
+  let source = sources.add("unicode.ctx", "🙂x")
+  guard sources.locate(@diagnostics.Span::new(source, start=1, end=2))
+    is Some(unicode_location) else {
+    fail("expected a Unicode scalar range to be valid")
+  }
+  assert_eq(unicode_location.start, { line: 1, column: 2, })
+  assert_eq(unicode_location.end, { line: 1, column: 3, })
+
+  assert_true(
+    sources.locate(@diagnostics.Span::new(source, start=-1, end=0)) is None,
+  )
+  assert_true(
+    sources.locate(@diagnostics.Span::new(source, start=2, end=1)) is None,
+  )
+  assert_true(
+    sources.locate(@diagnostics.Span::new(source, start=0, end=3)) is None,
+  )
+  assert_true(
+    sources.locate(
+      @diagnostics.Span::new(
+        @diagnostics.SourceId::{ value: 99, },
+        start=0,
+        end=0,
+      ),
+    )
+    is None,
+  )
+}
+
+///|
 test "formats an error with a single-line label and help" {
   let sources = @diagnostics.SourceMap::new()
   let source = sources.add("prompts/main.ctx", "let value = \"ok\";")
