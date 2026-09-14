@@ -46,6 +46,28 @@ test "expands nested includes in depth-first declaration order" {
 }
 
 ///|
+async test "loads only the transitive include graph through a provider" {
+  let files : Map[String, String] = {
+    "root.ctx": "context \"demo\"; include \"shared/base.ctx\";",
+    "shared/base.ctx": "include \"nested/rules.ctx\";",
+    "shared/nested/rules.ctx": "section \"rules\" { text = \"ok\"; }",
+    "unused.ctx": "section \"unused\" { text = \"unused\"; }",
+  }
+  let requested : Array[String] = []
+  let result = @resolver.resolve_with_provider("root.ctx", path => {
+    requested.push(path)
+    files.get(path)
+  })
+  assert_eq(result.diagnostics.length(), 0)
+  assert_eq(result.document.sources.map(source => source.path), [
+    "root.ctx", "shared/base.ctx", "shared/nested/rules.ctx",
+  ])
+  assert_eq(requested, [
+    "root.ctx", "shared/base.ctx", "shared/nested/rules.ctx",
+  ])
+}
+
+///|
 test "reports a missing included source" {
   let root =
     #|context "missing";

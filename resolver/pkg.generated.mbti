@@ -10,6 +10,8 @@ import {
 // Values
 pub fn resolve(String, Array[SourceInput]) -> ResolveResult
 
+pub async fn resolve_with_provider(String, async (String) -> String?) -> ResolveResult
+
 // Errors
 
 // Types and methods

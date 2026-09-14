@@ -1,0 +1,11 @@
+context "cli-test";
+budget chars = 100;
+output text;
+let language = "default";
+section "greeting" required {
+  text = "Hello ${language}.";
+}
+include "cli-shared.ctx";
+section "large" priority = 80 {
+  text = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+}

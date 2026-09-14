@@ -1,5 +1,18 @@
 import {
-  "lllg123/mooncontext",
+  "lllg123/mooncontext/budget",
+  "lllg123/mooncontext/diagnostics",
+  "lllg123/mooncontext/ir",
+  "lllg123/mooncontext/provenance",
+  "lllg123/mooncontext/resolver",
+  "lllg123/mooncontext/semantics",
+  "lllg123/mooncontext/syntax",
+  "moonbitlang/core/env",
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/async",
+  "moonbitlang/async/fs",
+  "moonbitlang/async/stdio",
 }
 
 pkgtype(kind: "executable")
+
+supported_targets = "native"

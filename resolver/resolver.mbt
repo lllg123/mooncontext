@@ -206,6 +206,61 @@ fn build_source_table(inputs : Array[SourceInput]) -> Map[String, String] {
 }
 
 ///|
+async fn collect_provider_inputs(
+  entry_path : String,
+  root_text : String,
+  read_source : async (String) -> String?,
+) -> Array[SourceInput] {
+  let normalized_entry = normalize_relative_path("", entry_path)
+  let compilation_root = match normalized_entry {
+    Some(path) => parent_path(path)
+    None => ""
+  }
+  let inputs : Array[SourceInput] = [{ path: entry_path, text: root_text, }]
+  let pending : Array[SourceInput] = [{ path: entry_path, text: root_text, }]
+  let loaded : Map[String, Bool] = Map([])
+  loaded[entry_path] = true
+  let mut index = 0
+  while index < pending.length() {
+    let current = pending[index]
+    let parsed = @syntax.parse(
+      @diagnostics.SourceId::{ value: 0, },
+      current.text,
+    )
+    if parsed.diagnostics.length() == 0 {
+      for declaration in parsed.document.declarations {
+        match declaration {
+          Include(include_decl) => {
+            let include_path = normalize_relative_path(
+              parent_path(current.path),
+              include_decl.path.value,
+            )
+            match include_path {
+              Some(path) if path_is_within(compilation_root, path) =>
+                if !loaded.contains(path) {
+                  loaded[path] = true
+                  match read_source(path) {
+                    Some(text) => {
+                      let source = { path, text, }
+                      inputs.push(source)
+                      pending.push(source)
+                    }
+                    None => ()
+                  }
+                }
+              _ => ()
+            }
+          }
+          _ => ()
+        }
+      }
+    }
+    index += 1
+  }
+  inputs
+}
+
+///|
 /// Resolve includes depth-first at their declaration position.
 ///
 /// Source inputs are addressed relative to the compilation root. Resolution
@@ -277,5 +332,29 @@ pub fn resolve(
       sources: resolver.sources,
     },
     diagnostics: resolver.diagnostics,
+  }
+}
+
+///|
+/// Load only the root's transitive include graph through an asynchronous source
+/// provider, then resolve it using the same safe path and cycle checks as
+/// `resolve`.
+///
+/// The provider receives normalized paths relative to the current working
+/// directory. Missing files are reported as `E3001` by the resolver.
+pub async fn resolve_with_provider(
+  entry_path : String,
+  read_source : async (String) -> String?,
+) -> ResolveResult {
+  match normalize_relative_path("", entry_path) {
+    Some(path) =>
+      match read_source(path) {
+        Some(text) => {
+          let inputs = collect_provider_inputs(path, text, read_source)
+          resolve(path, inputs)
+        }
+        None => resolve(path, [])
+      }
+    None => resolve(entry_path, [])
   }
 }

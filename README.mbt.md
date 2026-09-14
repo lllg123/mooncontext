@@ -1,12 +1,11 @@
 # MoonContext
 
 MoonContext is a deterministic context compiler for LLM and agent workflows,
-implemented in MoonBit. The project is being developed as a sequence of small,
-tested compiler stages.
+implemented in MoonBit. Its native CLI can check, build, and explain context
+files.
 
-The project currently provides a buildable library, a runnable CLI, and a
-black-box smoke test. The draft v0.1 language and compiler behavior are now
-specified; implementation of the compiler stages follows that contract.
+The draft v0.1 language and compiler behavior are specified in the design
+documents below.
 
 ## Design documents
 
@@ -23,14 +22,14 @@ specified; implementation of the compiler stages follows that contract.
 ## Run
 
 ```text
-moon run cmd/main
+moon run cmd/main -- --help
+moon run cmd/main check path/to/context.ctx --define language=MoonBit
+moon run cmd/main build path/to/context.ctx -o context.md --source-map context.map.json --manifest context.manifest.json
+moon run cmd/main explain path/to/context.ctx
 ```
 
-Expected output:
-
-```text
-MoonContext v0.1.0: compiler scaffold ready
-```
+The CLI exits with status 0 on success, 1 for checked context errors, and 2
+for invalid invocations or inaccessible inputs/outputs.
 
 ## Verify
 

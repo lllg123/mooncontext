@@ -1,0 +1,3 @@
+section "notes" priority = 40 {
+  file = "cli-content.txt";
+}

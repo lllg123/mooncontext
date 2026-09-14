@@ -24,3 +24,7 @@ keywords = [ "context", "compiler", "llm", "agent" ]
 preferred_target = "native"
 
 description = "A deterministic context compiler for LLM and agent workflows"
+
+import {
+  "moonbitlang/async@0.20.2",
+}

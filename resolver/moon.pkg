@@ -2,3 +2,7 @@ import {
   "lllg123/mooncontext/diagnostics",
   "lllg123/mooncontext/syntax",
 }
+
+import {
+  "moonbitlang/async",
+} for "test"
