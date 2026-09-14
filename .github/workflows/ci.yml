@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install MoonBit
+        uses: hustcer/setup-moonbit@v1
+        with:
+          version: "0.10.11+6ff76a5f9"
+          core-version: "0.10.11+6ff76a5f9"
+
+      - name: Show toolchain
+        run: moon version --all
+
+      - name: Resolve pinned dependencies
+        run: moon update
+
+      - name: Check formatting
+        run: moon fmt --check
+
+      - name: Type check
+        run: moon check --deny-warn
+
+      - name: Run tests
+        run: moon test
+
+      - name: Smoke-test examples
+        run: |
+          moon run cmd/main -- check examples/agent/context.ctx
+          moon run cmd/main -- check examples/code-review/context.ctx
+          moon run cmd/main -- check examples/knowledge-base/context.ctx
+          moon run cmd/main -- build examples/agent/context.ctx \
+            -o "$RUNNER_TEMP/agent.md" \
+            --source-map "$RUNNER_TEMP/agent.map.json" \
+            --manifest "$RUNNER_TEMP/agent.manifest.json"
+          moon run cmd/main -- build examples/code-review/context.ctx \
+            -o "$RUNNER_TEMP/code-review.txt"
+          moon run cmd/main -- build examples/knowledge-base/context.ctx \
+            -o "$RUNNER_TEMP/knowledge-base.txt"
+          moon run cmd/main -- explain examples/knowledge-base/context.ctx \
+            | tee "$RUNNER_TEMP/knowledge-base-explain.txt"
+          grep -F "omitted   history  budget" \
+            "$RUNNER_TEMP/knowledge-base-explain.txt"
+          test -s "$RUNNER_TEMP/agent.md"
+          test -s "$RUNNER_TEMP/agent.map.json"
+          test -s "$RUNNER_TEMP/agent.manifest.json"
+          test -s "$RUNNER_TEMP/code-review.txt"
+          test -s "$RUNNER_TEMP/knowledge-base.txt"

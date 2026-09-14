@@ -1,0 +1,10 @@
+context "code-review";
+budget chars = 1200;
+output text;
+
+let language = "MoonBit";
+include "shared/review-policy.ctx";
+
+section "repository" priority = 60 {
+  file = "notes/repository-summary.md";
+}

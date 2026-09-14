@@ -1,137 +1,58 @@
-# Design examples
+# Runnable examples
 
-These examples define intended v0.1 behavior before the parser and renderer are
-implemented. They are specification examples, not yet executable fixtures.
+The examples below are checked by CI from a clean checkout. Run commands from
+the repository root after installing MoonBit and running `moon update`.
 
-## 1. Support agent context
+## Support agent
 
-```ctx
-context "support-agent";
-budget chars = 1200;
-output markdown;
+Files: [context.ctx](../examples/agent/context.ctx).
 
-let product = "MoonContext";
-let tier = "pro";
-
-section "role" priority = 100 required {
-  text = """
-You support ${product}. Give reproducible steps and state uncertainty clearly.
-""";
-}
-
-section "pro-policy" priority = 70 when tier == "pro" {
-  text = "Pro users may attach private build logs for diagnosis.";
-}
+```sh
+moon run cmd/main -- check examples/agent/context.ctx
+moon run cmd/main -- build examples/agent/context.ctx -o _build/agent.md
 ```
 
-Expected Markdown:
+This example interpolates the product name, selects guidance using an explicit
+variable condition, and renders required Markdown.
 
-```markdown
-## role
+## Code review
 
-You support MoonContext. Give reproducible steps and state uncertainty clearly.
+Files: [root context](../examples/code-review/context.ctx),
+[included policy](../examples/code-review/shared/review-policy.ctx), and
+[repository notes](../examples/code-review/notes/repository-summary.md).
 
-## pro-policy
-
-Pro users may attach private build logs for diagnosis.
+```sh
+moon run cmd/main -- check examples/code-review/context.ctx
+moon run cmd/main -- build examples/code-review/context.ctx -o _build/code-review.txt
 ```
 
-This scenario verifies interpolation, a true condition, required content, and
-source-order rendering.
+The build expands an include, loads a safe relative content file, interpolates
+the declared language, and emits plain text.
 
-## 2. Code-review context with reusable policy
+## Local knowledge base
 
-Root file `review.ctx`:
+Files: [context.ctx](../examples/knowledge-base/context.ctx).
 
-```ctx
-context "code-review";
-budget chars = 1800;
-output text;
-
-let language = "MoonBit";
-include "shared/review-policy.ctx";
-
-section "repository" priority = 60 {
-  file = "notes/repository-summary.md";
-}
+```sh
+moon run cmd/main -- explain examples/knowledge-base/context.ctx
+moon run cmd/main -- build examples/knowledge-base/context.ctx -o _build/knowledge-base.txt
 ```
 
-Included file `shared/review-policy.ctx`:
+The required contract is retained, higher-priority notes are selected first,
+and the low-priority history section is omitted as one unit when it exceeds the
+character budget. `explain` reports the selection and omission reason.
 
-```ctx
-section "review-policy" priority = 100 required {
-  text = "Review ${language} correctness and security before discussing style.";
-}
+## Complete fresh-checkout verification
+
+```sh
+moon update
+moon fmt --check
+moon check --deny-warn
+moon test
+moon run cmd/main -- check examples/agent/context.ctx
+moon run cmd/main -- check examples/code-review/context.ctx
+moon run cmd/main -- check examples/knowledge-base/context.ctx
 ```
 
-With `notes/repository-summary.md` containing `The parser is incremental.`, the
-expected text output is:
-
-```text
-Review MoonBit correctness and security before discussing style.
-
-The parser is incremental.
-```
-
-This scenario verifies include expansion at declaration position, safe content
-loading, cross-file interpolation, and plain-text rendering.
-
-## 3. Budgeted local knowledge pack
-
-```ctx
-context "knowledge-pack";
-budget chars = 110;
-output text;
-
-section "contract" priority = 100 required {
-  text = "Answer only from the selected local notes.";
-}
-
-section "release" priority = 80 {
-  text = "Release 0.1 introduces deterministic context compilation.";
-}
-
-section "history" priority = 20 {
-  text = "The first prototype explored several unrelated output formats.";
-}
-```
-
-The required section is selected first. The `release` section is considered
-before `history`; if only `release` fits with renderer separators, `history` is
-omitted atomically. The artifact keeps source order, while `explain` records:
-
-```text
-selected  contract  required
-selected  release   priority=80
-omitted   history   budget
-```
-
-This scenario verifies deterministic priority selection and an explicit
-budget-omission reason. Exact character totals will become golden fixtures when
-the renderer is implemented.
-
-## Rejection examples
-
-An undefined variable is a semantic error:
-
-```ctx
-context "invalid-variable";
-budget chars = 100;
-output text;
-
-section "body" required {
-  text = "Hello ${missing}.";
-}
-```
-
-An unsafe path is a resolver error:
-
-```ctx
-context "invalid-path";
-budget chars = 100;
-output text;
-
-include "../outside.ctx";
-```
-
-Neither input produces a successful artifact.
+See [the release guide](releasing.md) for the CI toolchain pin and release
+checklist.
