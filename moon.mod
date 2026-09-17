@@ -19,11 +19,11 @@ repository = ""
 
 license = "Apache-2.0"
 
-keywords = [ "context", "compiler", "llm", "agent" ]
+keywords = [ "context", "audit", "llm", "agent" ]
 
 preferred_target = "native"
 
-description = "A deterministic context compiler for LLM and agent workflows"
+description = "A deterministic context audit tool for LLM and agent workflows"
 
 import {
   "moonbitlang/async@0.20.2",

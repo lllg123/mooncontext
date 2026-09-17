@@ -6,6 +6,10 @@ priv struct CommandOptions {
   source_map : String?
   manifest : String?
   definitions : Array[@semantics.Definition]
+  audit_budget : Int?
+  required_markers : Array[String]
+  report : String?
+  json : Bool
 }
 
 ///|
@@ -61,6 +65,22 @@ fn parse_definition(value : String) -> @semantics.Definition? {
 }
 
 ///|
+fn parse_positive_integer(value : String) -> Int? {
+  let chars = [ for ch in value => ch ]
+  if chars.length() == 0 {
+    return None
+  }
+  let mut result = 0
+  for ch in chars {
+    if ch < '0' || ch > '9' {
+      return None
+    }
+    result = result * 10 + (ch.to_int() - '0'.to_int())
+  }
+  Some(result)
+}
+
+///|
 fn parse_command(arguments : Array[String]) -> ArgumentResult {
   if arguments.length() == 0 ||
     arguments[0] == "--help" ||
@@ -69,7 +89,10 @@ fn parse_command(arguments : Array[String]) -> ArgumentResult {
     return { options: None, help: true, error: None, }
   }
   let action = arguments[0]
-  if action != "check" && action != "build" && action != "explain" {
+  if action != "check" &&
+    action != "build" &&
+    action != "explain" &&
+    action != "audit" {
     return {
       options: None,
       help: false,
@@ -80,6 +103,10 @@ fn parse_command(arguments : Array[String]) -> ArgumentResult {
   let mut output : String? = None
   let mut source_map : String? = None
   let mut manifest : String? = None
+  let mut audit_budget : Int? = None
+  let required_markers : Array[String] = []
+  let mut report : String? = None
+  let mut json = false
   let definitions : Array[@semantics.Definition] = []
   let mut index = 1
   while index < arguments.length() {
@@ -104,6 +131,76 @@ fn parse_command(arguments : Array[String]) -> ArgumentResult {
             ),
           }
       }
+    } else if argument == "--json" {
+      if action != "audit" {
+        return {
+          options: None,
+          help: false,
+          error: Some("`--json` is only valid with the `audit` command"),
+        }
+      }
+      json = true
+    } else if argument == "--require" {
+      if action != "audit" {
+        return {
+          options: None,
+          help: false,
+          error: Some("`--require` is only valid with the `audit` command"),
+        }
+      }
+      index += 1
+      if index >= arguments.length() || arguments[index] == "" {
+        return {
+          options: None,
+          help: false,
+          error: Some("`--require` expects a non-empty marker"),
+        }
+      }
+      required_markers.push(arguments[index])
+    } else if argument == "--budget" {
+      if action != "audit" {
+        return {
+          options: None,
+          help: false,
+          error: Some("`--budget` is only valid with the `audit` command"),
+        }
+      }
+      index += 1
+      if index >= arguments.length() {
+        return {
+          options: None,
+          help: false,
+          error: Some("`--budget` expects a positive integer"),
+        }
+      }
+      match parse_positive_integer(arguments[index]) {
+        Some(value) if value > 0 => audit_budget = Some(value)
+        _ =>
+          return {
+            options: None,
+            help: false,
+            error: Some("`--budget` expects a positive integer"),
+          }
+      }
+    } else if argument == "--report" {
+      if action != "audit" {
+        return {
+          options: None,
+          help: false,
+          error: Some("`--report` is only valid with the `audit` command"),
+        }
+      }
+      index += 1
+      if index >= arguments.length() ||
+        arguments[index] == "" ||
+        arguments[index].has_prefix("-") {
+        return {
+          options: None,
+          help: false,
+          error: Some("`--report` expects a path"),
+        }
+      }
+      report = Some(arguments[index])
     } else if argument == "-o" ||
       argument == "--output" ||
       argument == "--source-map" ||
@@ -155,6 +252,26 @@ fn parse_command(arguments : Array[String]) -> ArgumentResult {
       error: Some("output paths are only valid with the `build` command"),
     }
   }
+  if action == "audit" && audit_budget is None {
+    return {
+      options: None,
+      help: false,
+      error: Some("the `audit` command requires `--budget`"),
+    }
+  }
+  if action != "audit" &&
+    (
+      audit_budget is Some(_) ||
+      required_markers.length() > 0 ||
+      report is Some(_) ||
+      json
+    ) {
+    return {
+      options: None,
+      help: false,
+      error: Some("audit options are only valid with the `audit` command"),
+    }
+  }
   match input {
     Some(path) =>
       if path == "" {
@@ -172,6 +289,10 @@ fn parse_command(arguments : Array[String]) -> ArgumentResult {
             source_map,
             manifest,
             definitions,
+            audit_budget,
+            required_markers,
+            report,
+            json,
           }),
           help: false,
           error: None,
@@ -188,5 +309,5 @@ fn parse_command(arguments : Array[String]) -> ArgumentResult {
 
 ///|
 fn usage() -> String {
-  "Usage: mooncontext <check|build|explain> <input.ctx> [options]\n\nOptions:\n  --define name=value   Override a context variable (repeatable)\n  -o, --output path     Write build artifact to a file (build only)\n  --source-map path     Write source-map JSON (build only)\n  --manifest path       Write build-manifest JSON (build only)\n  -h, --help            Show this help\n"
+  "Usage: mooncontext <check|build|explain> <input.ctx> [options]\n       mooncontext audit <context.md> --budget N [options]\n\nOptions:\n  --define name=value   Override a context variable (repeatable)\n  -o, --output path     Write build artifact to a file (build only)\n  --source-map path     Write source-map JSON (build only)\n  --manifest path       Write build-manifest JSON (build only)\n  --budget N            Maximum characters for an existing context (audit)\n  --require marker      Require text to be present (repeatable, audit)\n  --report path         Write the audit report to a file (audit)\n  --json                Emit a machine-readable audit report (audit)\n  -h, --help            Show this help\n"
 }

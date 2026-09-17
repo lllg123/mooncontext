@@ -1,8 +1,8 @@
 # Release process
 
 MoonContext currently releases source tags; CI does not publish platform
-binaries. A tagged source revision contains the compiler, fixtures, and the
-workflow used to verify them.
+binaries. A tagged source revision contains the audit command, examples, and
+the workflow used to verify them.
 
 ## Reproduce a release check
 
@@ -17,12 +17,11 @@ moon update
 moon fmt --check
 moon check --deny-warn
 moon test
-moon run cmd/main -- check examples/agent/context.ctx
-moon run cmd/main -- check examples/code-review/context.ctx
-moon run cmd/main -- check examples/knowledge-base/context.ctx
+moon run cmd/main -- audit examples/audit/context.md --budget 1800 \
+  --require "System rules" --require "Evidence"
 ```
 
-The three runnable examples and their expected behavior are documented in
+The runnable audit example and its expected behavior are documented in
 [examples.md](examples.md). `moon update` needs registry access on a fresh
 machine; subsequent checks and tests use the resolved local dependency.
 

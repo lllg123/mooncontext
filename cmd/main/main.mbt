@@ -439,6 +439,84 @@ async fn write_file_or_stdout(path : String?, text : String) -> Bool {
 }
 
 ///|
+fn audit_json(path : String, report : @audit.Report) -> String {
+  let output = StringBuilder()
+  output.write_string("{\"path\":")
+  output.write_string(json_quote(path))
+  output.write_string(",\"character_count\":")
+  output.write_string(report.character_count.to_string())
+  output.write_string(",\"heading_count\":")
+  output.write_string(report.heading_count.to_string())
+  output.write_string(",\"issues\":[")
+  for index, issue in report.issues {
+    if index > 0 {
+      output.write_char(',')
+    }
+    output.write_string("{\"severity\":")
+    output.write_string(
+      json_quote(
+        match issue.severity {
+          @audit.Severity::Error => "error"
+          @audit.Severity::Warning => "warning"
+        },
+      ),
+    )
+    output.write_string(",\"code\":")
+    output.write_string(json_quote(issue.code))
+    output.write_string(",\"message\":")
+    output.write_string(json_quote(issue.message))
+    output.write_string(",\"line\":")
+    output.write_string(issue.line.to_string())
+    output.write_string(",\"column\":")
+    output.write_string(issue.column.to_string())
+    output.write_char('}')
+  }
+  output.write_string("]}\n")
+  output.to_string()
+}
+
+///|
+async fn run_audit(options : CommandOptions) -> Unit {
+  let budget = match options.audit_budget {
+    Some(value) => value
+    None => {
+      @stdio.stderr.write("error: audit budget is missing\n")
+      process_exit(2)
+      return
+    }
+  }
+  try {
+    let text = @fs.read_file(options.input).text()
+    let report = @audit.audit(
+      text,
+      @audit.Policy::new(
+        char_budget=budget,
+        required_markers=options.required_markers,
+      ),
+    )
+    let output = if options.json {
+      audit_json(options.input, report)
+    } else {
+      @audit.format_report(options.input, report)
+    }
+    let wrote = write_file_or_stdout(options.report, output)
+    if !wrote {
+      process_exit(2)
+    }
+    if report.has_errors() {
+      process_exit(1)
+    }
+  } catch {
+    error => {
+      @stdio.stderr.write(
+        "error: unable to read input \{options.input}: \{error}\n",
+      )
+      process_exit(2)
+    }
+  }
+}
+
+///|
 async fn print_explanation(
   context : @ir.Context,
   plan : @ir.SelectionPlan,
@@ -463,6 +541,10 @@ async fn print_explanation(
 
 ///|
 async fn run(options : CommandOptions) -> Unit {
+  if options.action == "audit" {
+    run_audit(options)
+    return
+  }
   let result = compile(options)
   if result.sources.length() == 0 {
     @stdio.stderr.write("error: unable to read root input `\{options.input}`\n")

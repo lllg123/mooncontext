@@ -39,23 +39,12 @@ jobs:
 
       - name: Smoke-test examples
         run: |
-          moon run cmd/main -- check examples/agent/context.ctx
-          moon run cmd/main -- check examples/code-review/context.ctx
-          moon run cmd/main -- check examples/knowledge-base/context.ctx
-          moon run cmd/main -- build examples/agent/context.ctx \
-            -o "$RUNNER_TEMP/agent.md" \
-            --source-map "$RUNNER_TEMP/agent.map.json" \
-            --manifest "$RUNNER_TEMP/agent.manifest.json"
-          moon run cmd/main -- build examples/code-review/context.ctx \
-            -o "$RUNNER_TEMP/code-review.txt"
-          moon run cmd/main -- build examples/knowledge-base/context.ctx \
-            -o "$RUNNER_TEMP/knowledge-base.txt"
-          moon run cmd/main -- explain examples/knowledge-base/context.ctx \
-            | tee "$RUNNER_TEMP/knowledge-base-explain.txt"
-          grep -F "omitted   history  budget" \
-            "$RUNNER_TEMP/knowledge-base-explain.txt"
-          test -s "$RUNNER_TEMP/agent.md"
-          test -s "$RUNNER_TEMP/agent.map.json"
-          test -s "$RUNNER_TEMP/agent.manifest.json"
-          test -s "$RUNNER_TEMP/code-review.txt"
-          test -s "$RUNNER_TEMP/knowledge-base.txt"
+          moon run cmd/main -- audit examples/audit/context.md \
+            --budget 1800 \
+            --require "System rules" \
+            --require "Evidence"
+          moon run cmd/main -- audit examples/audit/context.md \
+            --budget 1800 \
+            --json \
+            --report "$RUNNER_TEMP/context-audit.json"
+          test -s "$RUNNER_TEMP/context-audit.json"

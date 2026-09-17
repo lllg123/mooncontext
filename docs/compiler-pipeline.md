@@ -1,5 +1,9 @@
 # Compiler pipeline
 
+This document describes the repository's experimental legacy builder. The
+current project interface is the `audit` command, which accepts an existing
+Markdown or plain-text artifact and does not require this source format.
+
 MoonContext is organized as a sequence of pure transformations around a small,
 explicit file-loading boundary. Each stage owns one representation and must not
 silently repair invalid input from an earlier stage.

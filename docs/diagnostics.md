@@ -1,5 +1,9 @@
 # Diagnostic model
 
+The source-span examples below document the retained legacy builder. The
+current user-facing audit reports use the same stable location principle for
+ordinary Markdown artifacts.
+
 Diagnostics are part of the compiler's public behavior. They must be stable,
 ordered, source-aware, and useful without exposing host-specific absolute paths.
 

@@ -1,3 +1,0 @@
-section "review-policy" priority = 100 required {
-  text = "Review ${language} correctness and security before discussing style.";
-}

@@ -1,4 +1,5 @@
 import {
+  "lllg123/mooncontext/audit",
   "lllg123/mooncontext/budget",
   "lllg123/mooncontext/diagnostics",
   "lllg123/mooncontext/ir",

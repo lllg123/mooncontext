@@ -1,5 +1,9 @@
 # MoonContext language draft v0.1
 
+This is a retained compatibility draft, not the project's primary user-facing
+format. New integrations should keep their existing Markdown or template
+syntax and run the rendered result through `audit`.
+
 Status: implementation contract for the first usable compiler. Later changes
 that break accepted source files require a language-version decision.
 
