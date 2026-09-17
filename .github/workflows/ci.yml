@@ -34,6 +34,9 @@ jobs:
       - name: Type check
         run: moon check --deny-warn
 
+      - name: Build all targets
+        run: moon build --target all
+
       - name: Run tests
         run: moon test
 
@@ -42,7 +45,9 @@ jobs:
           moon run cmd/main -- audit examples/audit/context.md \
             --budget 1800 \
             --require "System rules" \
-            --require "Evidence"
+            --require "Evidence" \
+            --forbid "TODO" \
+            --deny-warnings
           moon run cmd/main -- audit examples/audit/context.md \
             --budget 1800 \
             --json \

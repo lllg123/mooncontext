@@ -9,7 +9,9 @@ knowledge-base build. No custom source format is required.
 moon run cmd/main -- audit examples/audit/context.md \
   --budget 1800 \
   --require "System rules" \
-  --require "Evidence"
+  --require "Evidence" \
+  --forbid "TODO" \
+  --deny-warnings
 ~~~
 
 The same check in machine-readable form is suitable for a release job:
@@ -33,6 +35,7 @@ moon run cmd/main -- audit examples/audit/context.md \
 moon update
 moon fmt --check
 moon check --deny-warn
+moon build
 moon test
 moon run cmd/main -- audit examples/audit/context.md --budget 1800
 ~~~

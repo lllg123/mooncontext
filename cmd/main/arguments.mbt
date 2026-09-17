@@ -8,8 +8,10 @@ priv struct CommandOptions {
   definitions : Array[@semantics.Definition]
   audit_budget : Int?
   required_markers : Array[String]
+  forbidden_markers : Array[String]
   report : String?
   json : Bool
+  deny_warnings : Bool
 }
 
 ///|
@@ -105,8 +107,10 @@ fn parse_command(arguments : Array[String]) -> ArgumentResult {
   let mut manifest : String? = None
   let mut audit_budget : Int? = None
   let required_markers : Array[String] = []
+  let forbidden_markers : Array[String] = []
   let mut report : String? = None
   let mut json = false
+  let mut deny_warnings = false
   let definitions : Array[@semantics.Definition] = []
   let mut index = 1
   while index < arguments.length() {
@@ -157,6 +161,34 @@ fn parse_command(arguments : Array[String]) -> ArgumentResult {
         }
       }
       required_markers.push(arguments[index])
+    } else if argument == "--forbid" {
+      if action != "audit" {
+        return {
+          options: None,
+          help: false,
+          error: Some("`--forbid` is only valid with the `audit` command"),
+        }
+      }
+      index += 1
+      if index >= arguments.length() || arguments[index] == "" {
+        return {
+          options: None,
+          help: false,
+          error: Some("`--forbid` expects a non-empty marker"),
+        }
+      }
+      forbidden_markers.push(arguments[index])
+    } else if argument == "--deny-warnings" {
+      if action != "audit" {
+        return {
+          options: None,
+          help: false,
+          error: Some(
+            "`--deny-warnings` is only valid with the `audit` command",
+          ),
+        }
+      }
+      deny_warnings = true
     } else if argument == "--budget" {
       if action != "audit" {
         return {
@@ -263,8 +295,10 @@ fn parse_command(arguments : Array[String]) -> ArgumentResult {
     (
       audit_budget is Some(_) ||
       required_markers.length() > 0 ||
+      forbidden_markers.length() > 0 ||
       report is Some(_) ||
-      json
+      json ||
+      deny_warnings
     ) {
     return {
       options: None,
@@ -291,8 +325,10 @@ fn parse_command(arguments : Array[String]) -> ArgumentResult {
             definitions,
             audit_budget,
             required_markers,
+            forbidden_markers,
             report,
             json,
+            deny_warnings,
           }),
           help: false,
           error: None,
@@ -309,5 +345,5 @@ fn parse_command(arguments : Array[String]) -> ArgumentResult {
 
 ///|
 fn usage() -> String {
-  "Usage: mooncontext <check|build|explain> <input.ctx> [options]\n       mooncontext audit <context.md> --budget N [options]\n\nOptions:\n  --define name=value   Override a context variable (repeatable)\n  -o, --output path     Write build artifact to a file (build only)\n  --source-map path     Write source-map JSON (build only)\n  --manifest path       Write build-manifest JSON (build only)\n  --budget N            Maximum characters for an existing context (audit)\n  --require marker      Require text to be present (repeatable, audit)\n  --report path         Write the audit report to a file (audit)\n  --json                Emit a machine-readable audit report (audit)\n  -h, --help            Show this help\n"
+  "Usage: mooncontext <check|build|explain> <input.ctx> [options]\n       mooncontext audit <context.md> --budget N [options]\n\nOptions:\n  --define name=value   Override a context variable (repeatable)\n  -o, --output path     Write build artifact to a file (build only)\n  --source-map path     Write source-map JSON (build only)\n  --manifest path       Write build-manifest JSON (build only)\n  --budget N            Maximum characters for an existing context (audit)\n  --require marker      Require text to be present (repeatable, audit)\n  --forbid marker       Reject unsafe or unfinished text (repeatable, audit)\n  --deny-warnings       Treat audit warnings as failures (audit)\n  --report path         Write the audit report to a file (audit)\n  --json                Emit a machine-readable audit report (audit)\n  -h, --help            Show this help\n"
 }

@@ -16,14 +16,21 @@ moon version --all
 moon update
 moon fmt --check
 moon check --deny-warn
+moon build
 moon test
 moon run cmd/main -- audit examples/audit/context.md --budget 1800 \
-  --require "System rules" --require "Evidence"
+  --require "System rules" --require "Evidence" --forbid "TODO" \
+  --deny-warnings
 ```
 
 The runnable audit example and its expected behavior are documented in
 [examples.md](examples.md). `moon update` needs registry access on a fresh
 machine; subsequent checks and tests use the resolved local dependency.
+
+Before publishing to Mooncakes, set the `repository` field in `moon.mod` to the
+public source repository, run the complete verification above, and publish the
+same clean revision. Verify the published package from a fresh project rather
+than relying only on the local checkout.
 
 ## Prepare and tag a release
 

@@ -10,6 +10,8 @@ MoonContext 是一个用 MoonBit 编写的上下文构建审计工具。它不�
 输出中，知识库内容超过模型限制，或者多人维护的 Markdown 出现重复标题。
 这些问题通常不会让模板引擎报错，却会直接改变模型行为。把“能否生成文本”
 和“这份文本能否进入生产请求”分开检查，才能在 CI 中尽早发现上下文回归。
+尤其是密钥前缀、TODO 和环境专用内容，一旦随上下文进入模型请求，可能造成
+信息泄漏或让生产行为偏离预期；审计工具应在发布边界提供一个可重复的最后门禁。
 
 MoonContext 的输入是已经组装好的 Markdown 或纯文本，输出是稳定的人类可读
 报告或 JSON 报告。它检查字符预算、必需标记、未解析的变量占位符和重复
@@ -36,8 +38,20 @@ moon run cmd/main -- audit examples/audit/context.md \
 ~~~
 
 命令退出码为：0 表示通过，1 表示发现上下文问题，2 表示参数、输入文件
-或报告输出不可用。必需标记可以重复传入，策略不绑定任何模型供应商或
-模板语法。
+或报告输出不可用。必需标记和禁止标记都可以重复传入，`--deny-warnings` 可
+将重复标题等警告升级为 CI 失败。策略不绑定任何模型供应商或模板语法。
+
+生产门禁可以额外拒绝敏感前缀和未完成标记：
+
+~~~text
+moon run cmd/main -- audit build/context.md \\
+  --budget 12000 \\
+  --require "Safety rules" \\
+  --forbid "sk-" \
+  --forbid "TODO" \
+  --deny-warnings \
+  --json --report _build/context-audit.json
+~~~
 
 ## 项目边界
 
@@ -47,7 +61,7 @@ MoonContext 不重新实现模板渲染器，也不发明新的上下文 DSL。�
 报告保存到发布构建物中。
 
 仓库中保留了早期的确定性上下文编译流水线，用于实验和兼容已有示例；当前
-项目主接口是 audit 命令，后续会围绕策略文件、来源追踪和 CI 集成继续完善。
+项目主接口是 audit 命令，后续会围绕可复用策略、来源追踪和 CI 集成继续完善。
 
 ## 文档
 
@@ -62,8 +76,10 @@ MoonContext 不重新实现模板渲染器，也不发明新的上下文 DSL。�
 moon update
 moon fmt --check
 moon check --deny-warn
+moon build
 moon test
-moon run cmd/main -- audit examples/audit/context.md --budget 1800
+moon run cmd/main -- audit examples/audit/context.md --budget 1800 \
+  --forbid "TODO" --deny-warnings
 ~~~
 
 ## 许可证

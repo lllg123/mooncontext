@@ -24,8 +24,10 @@ pub(all) struct Issue {
 pub(all) struct Policy {
   char_budget : Int
   required_markers : Array[String]
+  forbidden_markers : Array[String]
 } derive(Eq, @debug.Debug)
 pub fn Policy::new(char_budget~ : Int, required_markers~ : Array[String]) -> Self
+pub fn Policy::with_forbidden(char_budget~ : Int, required_markers~ : Array[String], forbidden_markers~ : Array[String]) -> Self
 
 pub(all) struct Report {
   character_count : Int
@@ -33,6 +35,8 @@ pub(all) struct Report {
   issues : Array[Issue]
 } derive(Eq, @debug.Debug)
 pub fn Report::has_errors(Self) -> Bool
+pub fn Report::has_failures(Self, deny_warnings~ : Bool) -> Bool
+pub fn Report::has_warnings(Self) -> Bool
 
 pub(all) enum Severity {
   Error

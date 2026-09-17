@@ -101,6 +101,64 @@ fn check_placeholders(
 }
 
 ///|
+/// Find the first 1-based character column containing a marker.
+fn marker_column(line : String, marker : String) -> Int? {
+  let line_chars = line_characters(line)
+  let marker_chars = line_characters(marker)
+  if marker_chars.length() == 0 || line_chars.length() < marker_chars.length() {
+    return None
+  }
+  let last_start = line_chars.length() - marker_chars.length()
+  for start in 0..<=last_start {
+    let mut matches = true
+    for offset in 0..<marker_chars.length() {
+      if line_chars[start + offset] != marker_chars[offset] {
+        matches = false
+      }
+    }
+    if matches {
+      return Some(start + 1)
+    }
+  }
+  None
+}
+
+///|
+/// Check for markers that must never reach a model request.
+fn check_forbidden_markers(
+  line : String,
+  line_number : Int,
+  forbidden_markers : Array[String],
+  issues : Array[Issue],
+) -> Unit {
+  for marker in forbidden_markers {
+    if marker == "" {
+      add_issue(
+        issues,
+        Error,
+        "A0003",
+        "forbidden marker must not be empty",
+        line_number,
+        1,
+      )
+    } else {
+      match marker_column(line, marker) {
+        Some(column) =>
+          add_issue(
+            issues,
+            Error,
+            "A1005",
+            "forbidden marker found: `\{marker}`",
+            line_number,
+            column,
+          )
+        None => ()
+      }
+    }
+  }
+}
+
+///|
 /// Audit an already-rendered context without imposing a source DSL.
 ///
 /// The audit is deliberately independent of the template engine that produced
@@ -113,6 +171,12 @@ pub fn audit(text : String, policy : Policy) -> Report {
   let mut heading_count = 0
   for line_number, line in lines {
     check_placeholders(line, line_number + 1, issues)
+    check_forbidden_markers(
+      line,
+      line_number + 1,
+      policy.forbidden_markers,
+      issues,
+    )
     match heading_name(line) {
       Some(name) => {
         heading_count += 1

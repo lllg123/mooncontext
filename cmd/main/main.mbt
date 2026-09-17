@@ -489,9 +489,10 @@ async fn run_audit(options : CommandOptions) -> Unit {
     let text = @fs.read_file(options.input).text()
     let report = @audit.audit(
       text,
-      @audit.Policy::new(
+      @audit.Policy::with_forbidden(
         char_budget=budget,
         required_markers=options.required_markers,
+        forbidden_markers=options.forbidden_markers,
       ),
     )
     let output = if options.json {
@@ -503,7 +504,7 @@ async fn run_audit(options : CommandOptions) -> Unit {
     if !wrote {
       process_exit(2)
     }
-    if report.has_errors() {
+    if report.has_failures(deny_warnings=options.deny_warnings) {
       process_exit(1)
     }
   } catch {

@@ -54,7 +54,7 @@ test "preserves equals signs in definition values" {
 test "parses audit policy options" {
   let parsed = parse_command([
     "audit", "README.md", "--budget", "1200", "--require", "Role", "--require", "Rules",
-    "--report", "audit.txt", "--json",
+    "--forbid", "sk-", "--report", "audit.txt", "--json", "--deny-warnings",
   ])
   match parsed.options {
     Some(options) => {
@@ -62,8 +62,10 @@ test "parses audit policy options" {
       assert_eq(options.input, "README.md")
       assert_eq(options.audit_budget, Some(1200))
       assert_eq(options.required_markers, ["Role", "Rules"])
+      assert_eq(options.forbidden_markers, ["sk-"])
       assert_eq(options.report, Some("audit.txt"))
       assert_true(options.json)
+      assert_true(options.deny_warnings)
     }
     None => fail("expected audit options")
   }

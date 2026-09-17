@@ -10,8 +10,10 @@ moon run cmd/main -- audit <context.md> --budget N [options]
 ~~~
 
 budget N 是 Unicode 字符数上限。require marker 要求文本中出现指定内容，
-可以重复传入。report path 把报告写入文件；json 选择稳定的机器可读格式。
-命令不会修改输入文件。
+可以重复传入；forbid marker 用于阻止密钥前缀、TODO 或环境专用文本进入
+模型请求，同样可以重复传入。deny-warnings 会把重复标题等警告升级为 CI
+失败。report path 把报告写入文件；json 选择稳定的机器可读格式。命令不会
+修改输入文件。
 
 ## 检查项目
 
@@ -19,8 +21,9 @@ budget N 是 Unicode 字符数上限。require marker 要求文本中出现指�
 - A1002：缺少必需标记；
 - A1003：存在未解析的变量占位符；
 - A1004：存在未解析的模板标记；
+- A1005：发现禁止出现在发布文本中的标记；
 - A2001：Markdown 一级或二级标题重复（警告，不单独导致失败）；
-- A0001、A0002：审计策略本身无效。
+- A0001、A0002、A0003：审计策略本身无效。
 
 报告同时给出字符数、标题数、文件路径、行列号和最终状态。错误使命令
 返回 1，输入或参数错误返回 2，方便 CI 区分“内容不合格”和“任务没有
@@ -32,3 +35,21 @@ budget N 是 Unicode 字符数上限。require marker 要求文本中出现指�
 二者可以独立升级：应用仍然可以使用 Mustache、Markdown 插值或自己的渲染
 代码，只需把最终字符串交给 audit。MoonContext 不执行模板中的函数，不读
 隐式环境变量，也不访问网络，因此审计结果只由输入文本和显式策略决定。
+
+## CI 门禁示例
+
+下面的策略同时检查上下文完整性和敏感内容泄漏；它不依赖某个模板引擎，
+适用于代码审查、知识库发布和多环境客服流水线：
+
+~~~sh
+moon run cmd/main -- audit build/context.md \\
+  --budget 12000 \\
+  --require "Safety rules" \\
+  --forbid "sk-" \
+  --forbid "TODO" \
+  --deny-warnings \
+  --json --report _build/context-audit.json
+~~~
+
+这样可以把“渲染成功”和“允许进入模型请求”分成两个明确的质量门，
+并将报告作为构建物保存，便于代码审查和发布追溯。

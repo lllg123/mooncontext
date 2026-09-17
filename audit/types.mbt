@@ -20,6 +20,7 @@ pub(all) struct Issue {
 pub(all) struct Policy {
   char_budget : Int
   required_markers : Array[String]
+  forbidden_markers : Array[String]
 } derive(Debug, Eq)
 
 ///|
@@ -36,11 +37,36 @@ pub fn Policy::new(
   char_budget~ : Int,
   required_markers~ : Array[String],
 ) -> Policy {
-  { char_budget, required_markers, }
+  { char_budget, required_markers, forbidden_markers: [], }
+}
+
+///|
+/// Create a policy that also rejects known unsafe or unfinished markers.
+///
+/// Forbidden markers are useful for preventing secrets, TODO placeholders, or
+/// environment-specific text from crossing the context boundary.
+pub fn Policy::with_forbidden(
+  char_budget~ : Int,
+  required_markers~ : Array[String],
+  forbidden_markers~ : Array[String],
+) -> Policy {
+  { char_budget, required_markers, forbidden_markers, }
 }
 
 ///|
 /// Return whether the report contains an error.
 pub fn Report::has_errors(self : Report) -> Bool {
   self.issues.any(issue => issue.severity == Severity::Error)
+}
+
+///|
+/// Return whether the report contains a warning.
+pub fn Report::has_warnings(self : Report) -> Bool {
+  self.issues.any(issue => issue.severity == Severity::Warning)
+}
+
+///|
+/// Return whether the report should fail a gate with the requested strictness.
+pub fn Report::has_failures(self : Report, deny_warnings~ : Bool) -> Bool {
+  self.has_errors() || (deny_warnings && self.has_warnings())
 }
