@@ -8,6 +8,8 @@ import {
 // Values
 pub fn audit(String, Policy) -> Report
 
+pub fn fingerprint(String) -> String
+
 pub fn format_report(String, Report) -> String
 
 pub fn parse_policy_json(String) -> Result[PolicyConfig, String]
@@ -38,6 +40,7 @@ pub(all) struct PolicyConfig {
 } derive(Eq, @debug.Debug)
 
 pub(all) struct Report {
+  fingerprint : String
   character_count : Int
   heading_count : Int
   issues : Array[Issue]

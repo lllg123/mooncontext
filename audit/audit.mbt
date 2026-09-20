@@ -237,5 +237,10 @@ pub fn audit(text : String, policy : Policy) -> Report {
       )
     }
   }
-  { character_count: count, heading_count, issues, }
+  {
+    fingerprint: fingerprint(text),
+    character_count: count,
+    heading_count,
+    issues,
+  }
 }

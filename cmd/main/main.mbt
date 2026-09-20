@@ -443,6 +443,8 @@ fn audit_json(path : String, report : @audit.Report) -> String {
   let output = StringBuilder()
   output.write_string("{\"path\":")
   output.write_string(json_quote(path))
+  output.write_string(",\"fingerprint\":")
+  output.write_string(json_quote(report.fingerprint))
   output.write_string(",\"character_count\":")
   output.write_string(report.character_count.to_string())
   output.write_string(",\"heading_count\":")

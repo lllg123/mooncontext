@@ -26,6 +26,7 @@ pub(all) struct Policy {
 ///|
 /// Result of auditing one context artifact.
 pub(all) struct Report {
+  fingerprint : String
   character_count : Int
   heading_count : Int
   issues : Array[Issue]

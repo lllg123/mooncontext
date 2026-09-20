@@ -11,6 +11,7 @@ fn severity_name(severity : Severity) -> String {
 pub fn format_report(path : String, report : Report) -> String {
   let output = StringBuilder()
   output.write_string("audit: \{path}\n")
+  output.write_string("fingerprint: \{report.fingerprint}\n")
   output.write_string("characters: \{report.character_count}\n")
   output.write_string("headings: \{report.heading_count}\n")
   output.write_string("issues: \{report.issues.length()}\n")
