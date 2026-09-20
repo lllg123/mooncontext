@@ -6,6 +6,7 @@ priv struct CommandOptions {
   source_map : String?
   manifest : String?
   definitions : Array[@semantics.Definition]
+  policy_path : String?
   audit_budget : Int?
   required_markers : Array[String]
   forbidden_markers : Array[String]
@@ -106,6 +107,7 @@ fn parse_command(arguments : Array[String]) -> ArgumentResult {
   let mut source_map : String? = None
   let mut manifest : String? = None
   let mut audit_budget : Int? = None
+  let mut policy_path : String? = None
   let required_markers : Array[String] = []
   let forbidden_markers : Array[String] = []
   let mut report : String? = None
@@ -189,6 +191,25 @@ fn parse_command(arguments : Array[String]) -> ArgumentResult {
         }
       }
       deny_warnings = true
+    } else if argument == "--policy" {
+      if action != "audit" {
+        return {
+          options: None,
+          help: false,
+          error: Some("`--policy` is only valid with the `audit` command"),
+        }
+      }
+      index += 1
+      if index >= arguments.length() ||
+        arguments[index] == "" ||
+        arguments[index].has_prefix("-") {
+        return {
+          options: None,
+          help: false,
+          error: Some("`--policy` expects a path"),
+        }
+      }
+      policy_path = Some(arguments[index])
     } else if argument == "--budget" {
       if action != "audit" {
         return {
@@ -284,16 +305,17 @@ fn parse_command(arguments : Array[String]) -> ArgumentResult {
       error: Some("output paths are only valid with the `build` command"),
     }
   }
-  if action == "audit" && audit_budget is None {
+  if action == "audit" && audit_budget is None && policy_path is None {
     return {
       options: None,
       help: false,
-      error: Some("the `audit` command requires `--budget`"),
+      error: Some("the `audit` command requires `--policy` or `--budget`"),
     }
   }
   if action != "audit" &&
     (
       audit_budget is Some(_) ||
+      policy_path is Some(_) ||
       required_markers.length() > 0 ||
       forbidden_markers.length() > 0 ||
       report is Some(_) ||
@@ -323,6 +345,7 @@ fn parse_command(arguments : Array[String]) -> ArgumentResult {
             source_map,
             manifest,
             definitions,
+            policy_path,
             audit_budget,
             required_markers,
             forbidden_markers,
@@ -345,5 +368,5 @@ fn parse_command(arguments : Array[String]) -> ArgumentResult {
 
 ///|
 fn usage() -> String {
-  "Usage: mooncontext <check|build|explain> <input.ctx> [options]\n       mooncontext audit <context.md> --budget N [options]\n\nOptions:\n  --define name=value   Override a context variable (repeatable)\n  -o, --output path     Write build artifact to a file (build only)\n  --source-map path     Write source-map JSON (build only)\n  --manifest path       Write build-manifest JSON (build only)\n  --budget N            Maximum characters for an existing context (audit)\n  --require marker      Require text to be present (repeatable, audit)\n  --forbid marker       Reject unsafe or unfinished text (repeatable, audit)\n  --deny-warnings       Treat audit warnings as failures (audit)\n  --report path         Write the audit report to a file (audit)\n  --json                Emit a machine-readable audit report (audit)\n  -h, --help            Show this help\n"
+  "Usage: mooncontext <check|build|explain> <input.ctx> [options]\n       mooncontext audit <context.md> (--policy path | --budget N) [options]\n\nOptions:\n  --define name=value   Override a context variable (repeatable)\n  -o, --output path     Write build artifact to a file (build only)\n  --source-map path     Write source-map JSON (build only)\n  --manifest path       Write build-manifest JSON (build only)\n  --policy path         Load a reusable JSON audit policy (audit)\n  --budget N            Maximum characters; overrides policy (audit)\n  --require marker      Append required text (repeatable, audit)\n  --forbid marker       Append forbidden text (repeatable, audit)\n  --deny-warnings       Treat audit warnings as failures (audit)\n  --report path         Write the audit report to a file (audit)\n  --json                Emit a machine-readable audit report (audit)\n  -h, --help            Show this help\n"
 }

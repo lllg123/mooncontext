@@ -25,9 +25,7 @@ Markdown 标题，并为每个问题给出代码、行列号和退出状态。�
 ~~~text
 moon update
 moon run cmd/main -- audit examples/audit/context.md \
-  --budget 1800 \
-  --require "System rules" \
-  --require "Evidence"
+  --policy examples/audit/policy.json
 ~~~
 
 需要机器读取时：
@@ -37,21 +35,34 @@ moon run cmd/main -- audit examples/audit/context.md \
   --budget 1800 --json --report _build/context-audit.json
 ~~~
 
-命令退出码为：0 表示通过，1 表示发现上下文问题，2 表示参数、输入文件
-或报告输出不可用。必需标记和禁止标记都可以重复传入，`--deny-warnings` 可
-将重复标题等警告升级为 CI 失败。策略不绑定任何模型供应商或模板语法。
+命令退出码为：0 表示通过，1 表示发现上下文问题，2 表示参数、输入文件、
+策略文件或报告输出不可用。策略使用标准 JSON，可由本地开发与 CI 共同复用，
+不绑定任何模型供应商或模板语法。未知字段会被拒绝，避免规则名称写错后被
+静默忽略。
 
 生产门禁可以额外拒绝敏感前缀和未完成标记：
 
 ~~~text
-moon run cmd/main -- audit build/context.md \\
-  --budget 12000 \\
-  --require "Safety rules" \\
-  --forbid "sk-" \
-  --forbid "TODO" \
-  --deny-warnings \
+moon run cmd/main -- audit build/context.md \
+  --policy audit-policy.json \
   --json --report _build/context-audit.json
 ~~~
+
+策略文件格式如下：
+
+~~~json
+{
+  "version": 1,
+  "char_budget": 12000,
+  "required_markers": ["Safety rules"],
+  "forbidden_markers": ["sk-", "TODO"],
+  "deny_warnings": true
+}
+~~~
+
+命令行仍可临时收紧策略：`--budget` 覆盖文件预算，`--require` 和 `--forbid`
+追加规则，`--deny-warnings` 开启严格模式。命令行不会移除策略文件中的安全
+规则，因而适合在共享基线上增加环境专用检查。
 
 ## 项目边界
 
@@ -78,8 +89,8 @@ moon fmt --check
 moon check --deny-warn
 moon build
 moon test
-moon run cmd/main -- audit examples/audit/context.md --budget 1800 \
-  --forbid "TODO" --deny-warnings
+moon run cmd/main -- audit examples/audit/context.md \
+  --policy examples/audit/policy.json
 ~~~
 
 ## 许可证

@@ -476,25 +476,79 @@ fn audit_json(path : String, report : @audit.Report) -> String {
 }
 
 ///|
-async fn run_audit(options : CommandOptions) -> Unit {
+fn effective_audit_policy(
+  options : CommandOptions,
+  loaded : @audit.PolicyConfig?,
+) -> (@audit.Policy, Bool)? {
   let budget = match options.audit_budget {
     Some(value) => value
+    None =>
+      match loaded {
+        Some(config) => config.policy.char_budget
+        None => return None
+      }
+  }
+  let required_markers : Array[String] = []
+  let forbidden_markers : Array[String] = []
+  let mut deny_warnings = options.deny_warnings
+  match loaded {
+    Some(config) => {
+      append_all(required_markers, config.policy.required_markers)
+      append_all(forbidden_markers, config.policy.forbidden_markers)
+      deny_warnings = deny_warnings || config.deny_warnings
+    }
+    None => ()
+  }
+  append_all(required_markers, options.required_markers)
+  append_all(forbidden_markers, options.forbidden_markers)
+  Some(
+    (
+      @audit.Policy::with_forbidden(
+        char_budget=budget,
+        required_markers~,
+        forbidden_markers~,
+      ),
+      deny_warnings,
+    ),
+  )
+}
+
+///|
+async fn run_audit(options : CommandOptions) -> Unit {
+  let loaded_policy = match options.policy_path {
+    None => None
+    Some(path) => {
+      let policy_text = @fs.read_file(path).text() catch {
+        error => {
+          @stdio.stderr.write(
+            "error: unable to read policy \{path}: \{error}\n",
+          )
+          process_exit(2)
+          return
+        }
+      }
+      match @audit.parse_policy_json(policy_text) {
+        Ok(config) => Some(config)
+        Err(message) => {
+          @stdio.stderr.write("error: invalid policy \{path}: \{message}\n")
+          process_exit(2)
+          return
+        }
+      }
+    }
+  }
+  let effective = match effective_audit_policy(options, loaded_policy) {
+    Some(value) => value
     None => {
-      @stdio.stderr.write("error: audit budget is missing\n")
+      @stdio.stderr.write("error: audit policy or budget is missing\n")
       process_exit(2)
       return
     }
   }
+  let (policy, deny_warnings) = effective
   try {
     let text = @fs.read_file(options.input).text()
-    let report = @audit.audit(
-      text,
-      @audit.Policy::with_forbidden(
-        char_budget=budget,
-        required_markers=options.required_markers,
-        forbidden_markers=options.forbidden_markers,
-      ),
-    )
+    let report = @audit.audit(text, policy)
     let output = if options.json {
       audit_json(options.input, report)
     } else {
@@ -504,7 +558,7 @@ async fn run_audit(options : CommandOptions) -> Unit {
     if !wrote {
       process_exit(2)
     }
-    if report.has_failures(deny_warnings=options.deny_warnings) {
+    if report.has_failures(deny_warnings~) {
       process_exit(1)
     }
   } catch {

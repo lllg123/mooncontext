@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "char_budget": 1800,
+  "required_markers": ["System rules", "Evidence"],
+  "forbidden_markers": ["TODO"],
+  "deny_warnings": true
+}

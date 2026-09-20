@@ -53,13 +53,15 @@ test "preserves equals signs in definition values" {
 ///|
 test "parses audit policy options" {
   let parsed = parse_command([
-    "audit", "README.md", "--budget", "1200", "--require", "Role", "--require", "Rules",
-    "--forbid", "sk-", "--report", "audit.txt", "--json", "--deny-warnings",
+    "audit", "README.md", "--policy", "audit-policy.json", "--budget", "1200", "--require",
+    "Role", "--require", "Rules", "--forbid", "sk-", "--report", "audit.txt", "--json",
+    "--deny-warnings",
   ])
   match parsed.options {
     Some(options) => {
       assert_eq(options.action, "audit")
       assert_eq(options.input, "README.md")
+      assert_eq(options.policy_path, Some("audit-policy.json"))
       assert_eq(options.audit_budget, Some(1200))
       assert_eq(options.required_markers, ["Role", "Rules"])
       assert_eq(options.forbidden_markers, ["sk-"])
@@ -75,4 +77,14 @@ test "parses audit policy options" {
 test "requires an audit budget" {
   let parsed = parse_command(["audit", "README.md"])
   assert_true(parsed.error is Some(_))
+}
+
+///|
+test "accepts a reusable policy without a budget override" {
+  let parsed = parse_command([
+    "audit", "README.md", "--policy", "audit-policy.json",
+  ])
+  guard parsed.options is Some(options) else { fail("expected audit options") }
+  assert_eq(options.policy_path, Some("audit-policy.json"))
+  assert_eq(options.audit_budget, None)
 }

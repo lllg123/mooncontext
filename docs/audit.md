@@ -6,14 +6,30 @@ audit 检查的是已经生成的 Markdown 或纯文本，不关心它由哪一�
 ## 命令
 
 ~~~text
-moon run cmd/main -- audit <context.md> --budget N [options]
+moon run cmd/main -- audit <context.md> (--policy <policy.json> | --budget N) [options]
 ~~~
 
-budget N 是 Unicode 字符数上限。require marker 要求文本中出现指定内容，
-可以重复传入；forbid marker 用于阻止密钥前缀、TODO 或环境专用文本进入
-模型请求，同样可以重复传入。deny-warnings 会把重复标题等警告升级为 CI
-失败。report path 把报告写入文件；json 选择稳定的机器可读格式。命令不会
-修改输入文件。
+policy path 加载版本化 JSON 策略，budget N 是 Unicode 字符数上限。两者
+同时出现时，命令行预算覆盖文件预算；require marker 与 forbid marker 会
+追加到文件规则，deny-warnings 只能开启严格模式，不能关闭策略已有的严格
+模式。report path 把报告写入文件；json 选择稳定的机器可读格式。命令不会
+修改输入文件或策略文件。
+
+## JSON 策略
+
+~~~json
+{
+  "version": 1,
+  "char_budget": 12000,
+  "required_markers": ["Safety rules"],
+  "forbidden_markers": ["sk-", "TODO"],
+  "deny_warnings": true
+}
+~~~
+
+version 和 char_budget 是必填字段；其余字段分别默认为空数组、空数组和
+false。当前只接受 version 1。解析器拒绝未知字段、错误类型、非正预算和空
+标记，防止拼写错误或无效配置绕过发布门禁。
 
 ## 检查项目
 
@@ -42,12 +58,8 @@ budget N 是 Unicode 字符数上限。require marker 要求文本中出现指�
 适用于代码审查、知识库发布和多环境客服流水线：
 
 ~~~sh
-moon run cmd/main -- audit build/context.md \\
-  --budget 12000 \\
-  --require "Safety rules" \\
-  --forbid "sk-" \
-  --forbid "TODO" \
-  --deny-warnings \
+moon run cmd/main -- audit build/context.md \
+  --policy audit-policy.json \
   --json --report _build/context-audit.json
 ~~~
 
