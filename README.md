@@ -46,6 +46,19 @@ moon run cmd/main -- audit examples/audit/context.md \
   --budget 1800 --json --report _build/context-audit.json
 ~~~
 
+可以比较两次 JSON 审计结果，定位新增、删除、内容指纹变化和问题代码变化：
+
+~~~text
+moon run cmd/main -- diff \
+  _build/context-audit-before.json _build/context-audit-after.json \
+  --json --report _build/context-audit-diff.json
+~~~
+
+比较命令把报告按 artifact path 对齐。文本输出适合代码审查，JSON 输出包含
+added、removed、changed、unchanged、errors_added、errors_removed 和 summary
+字段；没有变化时退出码为 0，有变化时退出码为 1，报告损坏或文件不可读时退出码
+为 2。单文件 audit 报告的既有字段和格式不会被 diff 改写。
+
 命令退出码为：0 表示全部通过，1 表示至少一个上下文未通过门禁，2 表示参数、
 输入文件、策略文件或报告输出不可用。批量审计会继续处理可读文件，并在 JSON
 报告的 `errors` 数组中列出读取失败的路径；策略使用标准 JSON，可由本地开发与 CI 共同复用，

@@ -99,3 +99,24 @@ test "accepts multiple audit input paths" {
   assert_eq(options.input, "first.md")
   assert_eq(options.audit_inputs, ["first.md", "second.md", "third.txt"])
 }
+
+///|
+test "parses audit report diff options" {
+  let parsed = parse_command([
+    "diff", "before.json", "after.json", "--json", "--report", "diff.json",
+  ])
+  guard parsed.options is Some(options) else { fail("expected diff options") }
+  assert_eq(options.action, "diff")
+  assert_eq(options.diff_inputs, ["before.json", "after.json"])
+  assert_true(options.json)
+  assert_eq(options.report, Some("diff.json"))
+}
+
+///|
+test "requires exactly two diff report paths" {
+  assert_true(parse_command(["diff", "before.json"]).error is Some(_))
+  assert_true(
+    parse_command(["diff", "before.json", "after.json", "extra.json"]).error
+    is Some(_),
+  )
+}

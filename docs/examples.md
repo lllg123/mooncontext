@@ -23,6 +23,18 @@ moon run cmd/main -- audit \
 Batch output keeps one report per input in order and adds a summary of passed,
 warning, failed, and unreadable artifacts.
 
+To review a report change between two builds:
+
+~~~sh
+moon run cmd/main -- diff \
+  _build/context-audit-before.json _build/context-audit-after.json \
+  --json --report _build/context-audit-diff.json
+~~~
+
+The diff aligns artifacts by path and records additions, removals, fingerprint
+changes, issue-code changes, and newly unreadable inputs. A changed report exits
+with status 1 so a release job can require an explicit review.
+
 To exercise the failure path, lower the budget or require a marker that is not
 present:
 

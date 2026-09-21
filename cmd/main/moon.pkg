@@ -9,6 +9,7 @@ import {
   "lllg123/mooncontext/syntax",
   "moonbitlang/core/env",
   "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/json",
   "moonbitlang/async",
   "moonbitlang/async/fs",
   "moonbitlang/async/stdio",

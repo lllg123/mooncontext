@@ -23,6 +23,22 @@ artifact 保留原有报告结构与指纹，summary 汇总总数、通过数、
 和读取错误数。命令会继续处理后续输入；只要有一个路径无法读取，最终退出码
 为 2。
 
+## 比较两次审计报告
+
+~~~text
+moon run cmd/main -- diff <before.json> <after.json> [--json] [--report <path>]
+~~~
+
+diff 同时接受单文件 audit JSON 和批量报告。它按 artifact 的 path 对齐两份报告，
+并把内容指纹或问题代码变化列为 changed；只出现在后一份报告中的路径列为 added，
+只出现在前一份报告中的路径列为 removed，其余列为 unchanged。批量报告中的读取
+错误也按路径分别列入 errors_added 和 errors_removed。
+
+文本输出显示路径和指纹变化，适合代码审查；加上 json 后会写出稳定的机器可读
+对象，包含六个分类数组、summary 计数和 status（changed 或 unchanged）。没有
+任何变化时退出码为 0，发现变化时为 1，输入不是有效审计报告或无法读写文件时为 2。
+因此可以把 diff 接在发布流水线中，要求审计结果变化必须经过人工确认。
+
 policy path 加载版本化 JSON 策略，budget N 是 Unicode 字符数上限。两者
 同时出现时，命令行预算覆盖文件预算；require marker 与 forbid marker 会
 追加到文件规则，deny-warnings 只能开启严格模式，不能关闭策略已有的严格

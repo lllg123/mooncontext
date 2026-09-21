@@ -7,6 +7,7 @@ priv struct CommandOptions {
   manifest : String?
   definitions : Array[@semantics.Definition]
   audit_inputs : Array[String]
+  diff_inputs : Array[String]
   policy_path : String?
   audit_budget : Int?
   required_markers : Array[String]
@@ -96,7 +97,8 @@ fn parse_command(arguments : Array[String]) -> ArgumentResult {
   if action != "check" &&
     action != "build" &&
     action != "explain" &&
-    action != "audit" {
+    action != "audit" &&
+    action != "diff" {
     return {
       options: None,
       help: false,
@@ -108,6 +110,7 @@ fn parse_command(arguments : Array[String]) -> ArgumentResult {
   let mut source_map : String? = None
   let mut manifest : String? = None
   let audit_inputs : Array[String] = []
+  let diff_inputs : Array[String] = []
   let mut audit_budget : Int? = None
   let mut policy_path : String? = None
   let required_markers : Array[String] = []
@@ -140,11 +143,11 @@ fn parse_command(arguments : Array[String]) -> ArgumentResult {
           }
       }
     } else if argument == "--json" {
-      if action != "audit" {
+      if action != "audit" && action != "diff" {
         return {
           options: None,
           help: false,
-          error: Some("`--json` is only valid with the `audit` command"),
+          error: Some("`--json` is only valid with `audit` or `diff`"),
         }
       }
       json = true
@@ -238,11 +241,11 @@ fn parse_command(arguments : Array[String]) -> ArgumentResult {
           }
       }
     } else if argument == "--report" {
-      if action != "audit" {
+      if action != "audit" && action != "diff" {
         return {
           options: None,
           help: false,
-          error: Some("`--report` is only valid with the `audit` command"),
+          error: Some("`--report` is only valid with `audit` or `diff`"),
         }
       }
       index += 1
@@ -293,6 +296,18 @@ fn parse_command(arguments : Array[String]) -> ArgumentResult {
       if input is None {
         input = Some(argument)
       }
+    } else if action == "diff" {
+      if diff_inputs.length() >= 2 {
+        return {
+          options: None,
+          help: false,
+          error: Some("the `diff` command expects exactly two report paths"),
+        }
+      }
+      diff_inputs.push(argument)
+      if input is None {
+        input = Some(argument)
+      }
     } else if input is Some(_) {
       return {
         options: None,
@@ -319,20 +334,34 @@ fn parse_command(arguments : Array[String]) -> ArgumentResult {
       error: Some("the `audit` command requires `--policy` or `--budget`"),
     }
   }
+  if action == "diff" && diff_inputs.length() != 2 {
+    return {
+      options: None,
+      help: false,
+      error: Some("the `diff` command expects exactly two report paths"),
+    }
+  }
   if action != "audit" &&
     (
       audit_budget is Some(_) ||
       policy_path is Some(_) ||
       required_markers.length() > 0 ||
       forbidden_markers.length() > 0 ||
-      report is Some(_) ||
-      json ||
       deny_warnings
     ) {
     return {
       options: None,
       help: false,
       error: Some("audit options are only valid with the `audit` command"),
+    }
+  }
+  if action != "audit" && action != "diff" && (report is Some(_) || json) {
+    return {
+      options: None,
+      help: false,
+      error: Some(
+        "`--report` and `--json` are only valid with `audit` or `diff`",
+      ),
     }
   }
   match input {
@@ -353,6 +382,7 @@ fn parse_command(arguments : Array[String]) -> ArgumentResult {
             manifest,
             definitions,
             audit_inputs,
+            diff_inputs,
             policy_path,
             audit_budget,
             required_markers,
@@ -372,6 +402,8 @@ fn parse_command(arguments : Array[String]) -> ArgumentResult {
         error: Some(
           if action == "audit" {
             "at least one audit input path is required"
+          } else if action == "diff" {
+            "the `diff` command expects exactly two report paths"
           } else {
             "a root .ctx input path is required"
           },
@@ -382,5 +414,5 @@ fn parse_command(arguments : Array[String]) -> ArgumentResult {
 
 ///|
 fn usage() -> String {
-  "Usage: mooncontext <check|build|explain> <input.ctx> [options]\n       mooncontext audit <context.md>... (--policy path | --budget N) [options]\n\nOptions:\n  --define name=value   Override a context variable (repeatable)\n  -o, --output path     Write build artifact to a file (build only)\n  --source-map path     Write source-map JSON (build only)\n  --manifest path       Write build-manifest JSON (build only)\n  --policy path         Load a reusable JSON audit policy (audit)\n  --budget N            Maximum characters; overrides policy (audit)\n  --require marker      Append required text (repeatable, audit)\n  --forbid marker       Append forbidden text (repeatable, audit)\n  --deny-warnings       Treat audit warnings as failures (audit)\n  --report path         Write the audit report to a file (audit)\n  --json                Emit a machine-readable audit report (audit)\n  -h, --help            Show this help\n"
+  "Usage: mooncontext <check|build|explain> <input.ctx> [options]\n       mooncontext audit <context.md>... (--policy path | --budget N) [options]\n       mooncontext diff <before.json> <after.json> [--json] [--report path]\n\nOptions:\n  --define name=value   Override a context variable (repeatable)\n  -o, --output path     Write build artifact to a file (build only)\n  --source-map path     Write source-map JSON (build only)\n  --manifest path       Write build-manifest JSON (build only)\n  --policy path         Load a reusable JSON audit policy (audit)\n  --budget N            Maximum characters; overrides policy (audit)\n  --require marker      Append required text (repeatable, audit)\n  --forbid marker       Append forbidden text (repeatable, audit)\n  --deny-warnings       Treat audit warnings as failures (audit)\n  --report path         Write the audit or diff report to a file\n  --json                Emit a machine-readable audit or diff report\n  -h, --help            Show this help\n"
 }

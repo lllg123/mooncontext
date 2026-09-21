@@ -719,6 +719,62 @@ async fn run_audit(options : CommandOptions) -> Unit {
 }
 
 ///|
+async fn run_diff(options : CommandOptions) -> Unit {
+  let before_path = options.diff_inputs[0]
+  let after_path = options.diff_inputs[1]
+  let before_text = @fs.read_file(before_path).text() catch {
+    error => {
+      @stdio.stderr.write(
+        "error: unable to read audit report \{before_path}: \{error}\n",
+      )
+      process_exit(2)
+      return
+    }
+  }
+  let after_text = @fs.read_file(after_path).text() catch {
+    error => {
+      @stdio.stderr.write(
+        "error: unable to read audit report \{after_path}: \{error}\n",
+      )
+      process_exit(2)
+      return
+    }
+  }
+  let before = match parse_audit_snapshot(before_text) {
+    Ok(value) => value
+    Err(message) => {
+      @stdio.stderr.write(
+        "error: invalid audit report \{before_path}: \{message}\n",
+      )
+      process_exit(2)
+      return
+    }
+  }
+  let after = match parse_audit_snapshot(after_text) {
+    Ok(value) => value
+    Err(message) => {
+      @stdio.stderr.write(
+        "error: invalid audit report \{after_path}: \{message}\n",
+      )
+      process_exit(2)
+      return
+    }
+  }
+  let diff = compare_audit_snapshots(before, after)
+  let output = if options.json {
+    diff_json(diff)
+  } else {
+    diff_text(before_path, after_path, diff)
+  }
+  if !write_file_or_stdout(options.report, output) {
+    process_exit(2)
+  }
+  if audit_diff_has_changes(diff) {
+    process_exit(1)
+  }
+}
+
+///|
 async fn print_explanation(
   context : @ir.Context,
   plan : @ir.SelectionPlan,
@@ -745,6 +801,10 @@ async fn print_explanation(
 async fn run(options : CommandOptions) -> Unit {
   if options.action == "audit" {
     run_audit(options)
+    return
+  }
+  if options.action == "diff" {
+    run_diff(options)
     return
   }
   let result = compile(options)
