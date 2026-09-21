@@ -81,6 +81,21 @@ test "requires an audit budget" {
 }
 
 ///|
+test "rejects zero and overflowing audit budgets" {
+  assert_true(
+    parse_command(["audit", "README.md", "--budget", "0"]).error is Some(_),
+  )
+  assert_true(
+    parse_command(["audit", "README.md", "--budget", "4294967297"]).error
+    is Some(_),
+  )
+  assert_true(
+    parse_command(["audit", "README.md", "--budget", "2147483647"]).options
+    is Some(_),
+  )
+}
+
+///|
 test "accepts a reusable policy without a budget override" {
   let parsed = parse_command([
     "audit", "README.md", "--policy", "audit-policy.json",

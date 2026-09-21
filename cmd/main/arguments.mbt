@@ -80,7 +80,11 @@ fn parse_positive_integer(value : String) -> Int? {
     if ch < '0' || ch > '9' {
       return None
     }
-    result = result * 10 + (ch.to_int() - '0'.to_int())
+    let digit = ch.to_int() - '0'.to_int()
+    if result > 214748364 || (result == 214748364 && digit > 7) {
+      return None
+    }
+    result = result * 10 + digit
   }
   Some(result)
 }

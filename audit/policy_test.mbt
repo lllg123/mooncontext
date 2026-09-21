@@ -74,3 +74,33 @@ test "rejects unknown fields and malformed marker arrays" {
     is Err(_),
   )
 }
+
+///|
+test "accepts whitespace and the smallest valid budget" {
+  let parsed = parse_policy_json(
+    " \n { \"version\": 1, \"char_budget\": 1 } \r\n ",
+  )
+  guard parsed is Ok(config) else { fail("expected a valid boundary policy") }
+  assert_eq(config.policy.char_budget, 1)
+  assert_eq(config.policy.required_markers, [])
+  assert_eq(config.policy.forbidden_markers, [])
+}
+
+///|
+test "rejects malformed marker elements and overflowing budgets" {
+  assert_true(
+    parse_policy_json(
+      "{\"version\":1,\"char_budget\":1,\"required_markers\":[null]}",
+    )
+    is Err(_),
+  )
+  assert_true(
+    parse_policy_json(
+      "{\"version\":1,\"char_budget\":1,\"forbidden_markers\":[{\"value\":\"x\"}]}",
+    )
+    is Err(_),
+  )
+  assert_true(
+    parse_policy_json("{\"version\":1,\"char_budget\":4294967297}") is Err(_),
+  )
+}
