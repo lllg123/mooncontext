@@ -6,6 +6,7 @@ priv struct CommandOptions {
   source_map : String?
   manifest : String?
   definitions : Array[@semantics.Definition]
+  audit_inputs : Array[String]
   policy_path : String?
   audit_budget : Int?
   required_markers : Array[String]
@@ -106,6 +107,7 @@ fn parse_command(arguments : Array[String]) -> ArgumentResult {
   let mut output : String? = None
   let mut source_map : String? = None
   let mut manifest : String? = None
+  let audit_inputs : Array[String] = []
   let mut audit_budget : Int? = None
   let mut policy_path : String? = None
   let required_markers : Array[String] = []
@@ -286,6 +288,11 @@ fn parse_command(arguments : Array[String]) -> ArgumentResult {
         help: false,
         error: Some("unknown option `\{argument}`"),
       }
+    } else if action == "audit" {
+      audit_inputs.push(argument)
+      if input is None {
+        input = Some(argument)
+      }
     } else if input is Some(_) {
       return {
         options: None,
@@ -345,6 +352,7 @@ fn parse_command(arguments : Array[String]) -> ArgumentResult {
             source_map,
             manifest,
             definitions,
+            audit_inputs,
             policy_path,
             audit_budget,
             required_markers,
@@ -361,12 +369,18 @@ fn parse_command(arguments : Array[String]) -> ArgumentResult {
       {
         options: None,
         help: false,
-        error: Some("a root .ctx input path is required"),
+        error: Some(
+          if action == "audit" {
+            "at least one audit input path is required"
+          } else {
+            "a root .ctx input path is required"
+          },
+        ),
       }
   }
 }
 
 ///|
 fn usage() -> String {
-  "Usage: mooncontext <check|build|explain> <input.ctx> [options]\n       mooncontext audit <context.md> (--policy path | --budget N) [options]\n\nOptions:\n  --define name=value   Override a context variable (repeatable)\n  -o, --output path     Write build artifact to a file (build only)\n  --source-map path     Write source-map JSON (build only)\n  --manifest path       Write build-manifest JSON (build only)\n  --policy path         Load a reusable JSON audit policy (audit)\n  --budget N            Maximum characters; overrides policy (audit)\n  --require marker      Append required text (repeatable, audit)\n  --forbid marker       Append forbidden text (repeatable, audit)\n  --deny-warnings       Treat audit warnings as failures (audit)\n  --report path         Write the audit report to a file (audit)\n  --json                Emit a machine-readable audit report (audit)\n  -h, --help            Show this help\n"
+  "Usage: mooncontext <check|build|explain> <input.ctx> [options]\n       mooncontext audit <context.md>... (--policy path | --budget N) [options]\n\nOptions:\n  --define name=value   Override a context variable (repeatable)\n  -o, --output path     Write build artifact to a file (build only)\n  --source-map path     Write source-map JSON (build only)\n  --manifest path       Write build-manifest JSON (build only)\n  --policy path         Load a reusable JSON audit policy (audit)\n  --budget N            Maximum characters; overrides policy (audit)\n  --require marker      Append required text (repeatable, audit)\n  --forbid marker       Append forbidden text (repeatable, audit)\n  --deny-warnings       Treat audit warnings as failures (audit)\n  --report path         Write the audit report to a file (audit)\n  --json                Emit a machine-readable audit report (audit)\n  -h, --help            Show this help\n"
 }

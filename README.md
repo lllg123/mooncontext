@@ -30,6 +30,15 @@ moon run cmd/main -- audit examples/audit/context.md \
   --policy examples/audit/policy.json
 ~~~
 
+多个构建物可以在同一条命令中审计，输入顺序会保留在报告中：
+
+~~~text
+moon run cmd/main -- audit \
+  examples/audit/context.md examples/audit/context-minimal.md \
+  --policy examples/audit/policy.json --json \
+  --report _build/context-audit-batch.json
+~~~
+
 需要机器读取时：
 
 ~~~text
@@ -37,8 +46,9 @@ moon run cmd/main -- audit examples/audit/context.md \
   --budget 1800 --json --report _build/context-audit.json
 ~~~
 
-命令退出码为：0 表示通过，1 表示发现上下文问题，2 表示参数、输入文件、
-策略文件或报告输出不可用。策略使用标准 JSON，可由本地开发与 CI 共同复用，
+命令退出码为：0 表示全部通过，1 表示至少一个上下文未通过门禁，2 表示参数、
+输入文件、策略文件或报告输出不可用。批量审计会继续处理可读文件，并在 JSON
+报告的 `errors` 数组中列出读取失败的路径；策略使用标准 JSON，可由本地开发与 CI 共同复用，
 不绑定任何模型供应商或模板语法。未知字段会被拒绝，避免规则名称写错后被
 静默忽略。
 

@@ -9,6 +9,20 @@ audit 检查的是已经生成的 Markdown 或纯文本，不关心它由哪一�
 moon run cmd/main -- audit <context.md> (--policy <policy.json> | --budget N) [options]
 ~~~
 
+`audit` 后可以传入多个位置参数，例如：
+
+~~~sh
+moon run cmd/main -- audit \
+  examples/audit/context.md examples/audit/context-minimal.md \
+  --policy examples/audit/policy.json --json \
+  --report _build/context-audit-batch.json
+~~~
+
+多文件 JSON 报告使用 `artifacts`、`errors` 和 `summary` 三个字段；每个
+artifact 保留原有报告结构与指纹，summary 汇总总数、通过数、警告数、失败数
+和读取错误数。命令会继续处理后续输入；只要有一个路径无法读取，最终退出码
+为 2。
+
 policy path 加载版本化 JSON 策略，budget N 是 Unicode 字符数上限。两者
 同时出现时，命令行预算覆盖文件预算；require marker 与 forbid marker 会
 追加到文件规则，deny-warnings 只能开启严格模式，不能关闭策略已有的严格

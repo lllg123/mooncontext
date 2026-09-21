@@ -43,8 +43,10 @@ jobs:
       - name: Smoke-test examples
         run: |
           moon run cmd/main -- audit examples/audit/context.md \
+            examples/audit/context-minimal.md \
             --policy examples/audit/policy.json
           moon run cmd/main -- audit examples/audit/context.md \
+            examples/audit/context-minimal.md \
             --policy examples/audit/policy.json \
             --json \
             --report "$RUNNER_TEMP/context-audit.json"

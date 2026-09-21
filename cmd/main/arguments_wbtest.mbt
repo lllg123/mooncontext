@@ -61,6 +61,7 @@ test "parses audit policy options" {
     Some(options) => {
       assert_eq(options.action, "audit")
       assert_eq(options.input, "README.md")
+      assert_eq(options.audit_inputs, ["README.md"])
       assert_eq(options.policy_path, Some("audit-policy.json"))
       assert_eq(options.audit_budget, Some(1200))
       assert_eq(options.required_markers, ["Role", "Rules"])
@@ -87,4 +88,14 @@ test "accepts a reusable policy without a budget override" {
   guard parsed.options is Some(options) else { fail("expected audit options") }
   assert_eq(options.policy_path, Some("audit-policy.json"))
   assert_eq(options.audit_budget, None)
+}
+
+///|
+test "accepts multiple audit input paths" {
+  let parsed = parse_command([
+    "audit", "first.md", "second.md", "third.txt", "--budget", "900",
+  ])
+  guard parsed.options is Some(options) else { fail("expected audit options") }
+  assert_eq(options.input, "first.md")
+  assert_eq(options.audit_inputs, ["first.md", "second.md", "third.txt"])
 }

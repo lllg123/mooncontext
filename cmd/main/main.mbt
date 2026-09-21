@@ -7,6 +7,12 @@ priv struct Compilation {
 }
 
 ///|
+priv struct AuditReadError {
+  path : String
+  message : String
+}
+
+///|
 extern "C" fn process_exit(code : Int) -> Unit = "exit"
 
 ///|
@@ -439,7 +445,7 @@ async fn write_file_or_stdout(path : String?, text : String) -> Bool {
 }
 
 ///|
-fn audit_json(path : String, report : @audit.Report) -> String {
+fn audit_json_value(path : String, report : @audit.Report) -> String {
   let output = StringBuilder()
   output.write_string("{\"path\":")
   output.write_string(json_quote(path))
@@ -473,7 +479,119 @@ fn audit_json(path : String, report : @audit.Report) -> String {
     output.write_string(issue.column.to_string())
     output.write_char('}')
   }
-  output.write_string("]}\n")
+  output.write_string("]}")
+  output.to_string()
+}
+
+///|
+fn audit_json(path : String, report : @audit.Report) -> String {
+  audit_json_value(path, report) + "\n"
+}
+
+///|
+fn audit_summary_json(
+  total : Int,
+  audited : Int,
+  passed : Int,
+  warnings : Int,
+  failed : Int,
+  errors : Int,
+) -> String {
+  "{\"total\":\{total},\"audited\":\{audited},\"passed\":\{passed},\"warnings\":\{warnings},\"failed\":\{failed},\"errors\":\{errors}}"
+}
+
+///|
+fn audit_json_batch(
+  total : Int,
+  paths : Array[String],
+  reports : Array[@audit.Report],
+  read_errors : Array[AuditReadError],
+  deny_warnings : Bool,
+) -> String {
+  let mut passed = 0
+  let mut warnings = 0
+  let mut failed = 0
+  for report in reports {
+    if report.has_warnings() {
+      warnings += 1
+    }
+    if report.has_failures(deny_warnings~) {
+      failed += 1
+    } else if !report.has_warnings() {
+      passed += 1
+    }
+  }
+  let output = StringBuilder()
+  output.write_string("{\"artifacts\":[")
+  for index, report in reports {
+    if index > 0 {
+      output.write_char(',')
+    }
+    output.write_string(audit_json_value(paths[index], report))
+  }
+  output.write_string("],\"errors\":[")
+  for index, failure in read_errors {
+    if index > 0 {
+      output.write_char(',')
+    }
+    output.write_string("{\"path\":")
+    output.write_string(json_quote(failure.path))
+    output.write_string(",\"message\":")
+    output.write_string(json_quote(failure.message))
+    output.write_char('}')
+  }
+  output.write_string("],\"summary\":")
+  output.write_string(
+    audit_summary_json(
+      total,
+      reports.length(),
+      passed,
+      warnings,
+      failed,
+      read_errors.length(),
+    ),
+  )
+  output.write_string("}\n")
+  output.to_string()
+}
+
+///|
+fn audit_text_batch(
+  total : Int,
+  paths : Array[String],
+  reports : Array[@audit.Report],
+  read_errors : Array[AuditReadError],
+  deny_warnings : Bool,
+) -> String {
+  let mut passed = 0
+  let mut warnings = 0
+  let mut failed = 0
+  let output = StringBuilder()
+  for index, report in reports {
+    if index > 0 {
+      output.write_char('\n')
+    }
+    output.write_string(@audit.format_report(paths[index], report))
+    if report.has_warnings() {
+      warnings += 1
+    }
+    if report.has_failures(deny_warnings~) {
+      failed += 1
+    } else if !report.has_warnings() {
+      passed += 1
+    }
+  }
+  for failure in read_errors {
+    if reports.length() > 0 {
+      output.write_char('\n')
+    }
+    output.write_string(
+      "error: unable to read input \{failure.path}: \{failure.message}\n",
+    )
+  }
+  output.write_string(
+    "summary: total=\{total} audited=\{reports.length()} passed=\{passed} warnings=\{warnings} failed=\{failed} errors=\{read_errors.length()}\n",
+  )
   output.to_string()
 }
 
@@ -548,27 +666,54 @@ async fn run_audit(options : CommandOptions) -> Unit {
     }
   }
   let (policy, deny_warnings) = effective
-  try {
-    let text = @fs.read_file(options.input).text()
-    let report = @audit.audit(text, policy)
-    let output = if options.json {
-      audit_json(options.input, report)
+  let paths : Array[String] = []
+  let reports : Array[@audit.Report] = []
+  let read_errors : Array[AuditReadError] = []
+  for path in options.audit_inputs {
+    try {
+      let text = @fs.read_file(path).text()
+      paths.push(path)
+      reports.push(@audit.audit(text, policy))
+    } catch {
+      error => read_errors.push({ path, message: "\{error}", })
+    }
+  }
+  let single_success = options.audit_inputs.length() == 1 &&
+    reports.length() == 1 &&
+    read_errors.length() == 0
+  let output = if options.json {
+    if single_success {
+      audit_json(paths[0], reports[0])
     } else {
-      @audit.format_report(options.input, report)
+      audit_json_batch(
+        options.audit_inputs.length(),
+        paths,
+        reports,
+        read_errors,
+        deny_warnings,
+      )
     }
-    let wrote = write_file_or_stdout(options.report, output)
-    if !wrote {
-      process_exit(2)
-    }
+  } else if single_success {
+    @audit.format_report(paths[0], reports[0])
+  } else {
+    audit_text_batch(
+      options.audit_inputs.length(),
+      paths,
+      reports,
+      read_errors,
+      deny_warnings,
+    )
+  }
+  let wrote = write_file_or_stdout(options.report, output)
+  if !wrote {
+    process_exit(2)
+  }
+  if read_errors.length() > 0 {
+    process_exit(2)
+  }
+  for report in reports {
     if report.has_failures(deny_warnings~) {
       process_exit(1)
-    }
-  } catch {
-    error => {
-      @stdio.stderr.write(
-        "error: unable to read input \{options.input}: \{error}\n",
-      )
-      process_exit(2)
     }
   }
 }
