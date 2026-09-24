@@ -54,5 +54,5 @@ moon test
 moon run cmd/main -- audit examples/audit/context.md --budget 1800
 ~~~
 
-See [the audit contract](audit.md) and [the release guide](releasing.md) for
-the report format and CI checklist.
+See [the audit contract](audit.md), [production workflows](production-workflows.md),
+and [the release guide](releasing.md) for the report format and CI checklist.
