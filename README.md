@@ -106,6 +106,7 @@ MoonContext 不重新实现模板渲染器，也不发明新的上下文 DSL。�
 - [生产审计工作流](docs/production-workflows.md)
 - [诊断设计](docs/diagnostics.md)
 - [发布流程](docs/releasing.md)
+- [变更记录](CHANGELOG.md)
 
 ## 全新环境验证
 
