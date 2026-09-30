@@ -113,9 +113,9 @@ MoonContext 不重新实现模板渲染器，也不发明新的上下文 DSL。�
 ~~~text
 moon update
 moon fmt --check
-moon check --deny-warn
-moon build
-moon test
+moon check --target all --deny-warn --warn-list=-implicit_impl_as_method-test_unqualified_package
+moon build --target all
+moon test --target all
 moon run cmd/main -- audit examples/audit/context.md \
   --policy examples/audit/policy.json
 ~~~

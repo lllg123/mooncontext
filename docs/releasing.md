@@ -9,14 +9,14 @@ tracked in CHANGELOG.md.
 
 Use the same MoonBit compiler version pinned in
 [the CI workflow](../.github/workflows/ci.yml). The workflow installs
-`0.10.11+6ff76a5f9` and resolves the exact dependency declared in `moon.mod`.
+`0.10.14+7d59c7ec9` and resolves the exact dependency declared in `moon.mod`.
 For a fresh checkout, run from the repository root:
 
 ```sh
 moon version --all
 moon update
 moon fmt --check
-moon check --target all --deny-warn
+moon check --target all --deny-warn --warn-list=-implicit_impl_as_method-test_unqualified_package
 moon build --target all
 moon test --target all
 moon info

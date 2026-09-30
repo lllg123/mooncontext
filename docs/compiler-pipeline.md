@@ -169,5 +169,9 @@ Every compiler stage will receive:
 - cross-target checks for pure packages where supported;
 - end-to-end tests using an in-memory source provider.
 
-Milestone validation remains `moon fmt`, `moon check --deny-warn`, `moon test`,
-`moon build`, and `moon info` with review of generated interfaces.
+Milestone validation remains `moon fmt`, `moon check --target all --deny-warn
+--warn-list=-implicit_impl_as_method-test_unqualified_package`, `moon test
+--target all`, `moon build --target all`, and `moon info` with review of
+generated interfaces. The two compatibility warnings are disabled explicitly
+because MoonBit 0.10.14 reports them for legacy trait-dot syntax and doctest
+package qualification; all other warnings remain errors.

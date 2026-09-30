@@ -22,7 +22,7 @@ rendered context and a model request.
 
 ### Verification
 
-- MoonBit toolchain: 0.10.11+6ff76a5f9.
+- MoonBit toolchain: 0.10.14+7d59c7ec9.
 - Pinned dependency resolution through moon update.
 - Formatting, type checking, all-target builds, tests, and fresh-checkout
   audit examples verified before tagging.
