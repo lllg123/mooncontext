@@ -37,12 +37,18 @@ jobs:
       - name: Build all targets
         run: moon build --target all
 
-      - name: Run tests
-        run: moon test
+      - name: Run tests on all targets
+        run: moon test --target all
 
       - name: Smoke-test examples
         run: |
           moon run examples/release_gate -- pass
+          for mode in stale unsafe leak; do
+            if moon run examples/release_gate -- "$mode"; then
+              echo "Expected release gate to block: $mode" >&2
+              exit 1
+            fi
+          done
           moon run cmd/main -- audit examples/audit/context.md \
             examples/audit/context-minimal.md \
             --policy examples/audit/policy.json

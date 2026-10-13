@@ -20,10 +20,16 @@ Markdown 标题，并为每个问题给出代码、行列号和退出状态。�
 实际 UTF-8 内容的 SHA-256 指纹，可将审计记录与进入模型请求的具体构建物
 对应起来，并识别审计后发生的内容变化。
 
-想验证这不是只会检查静态文件的字符串工具，可运行
-[MoonBit 最终上下文门禁示例](docs/examples.md#moonbit-最终上下文门禁示例)：
-它从应用数据组装最终请求文本，审计通过才调用模拟模型回调；含未完成标记
-或敏感前缀时退出码为 1，回调不会执行。
+对于代码审查或 RAG，仅审计最终字符串还不够：引用的摘录必须确实存在于
+已批准的源快照里，源文件发生变更后也不应沿用旧审批。
+新增的 MoonBit `gate` 包按允许目录、来源 ID、固定 SHA-256 指纹和摘录
+逐项核验，再审计最终请求文本；只有成功才返回可交给适配器的
+`ApprovedContext`。这解决的是“引用证据与最终模型输入是否仍对应”的
+发布门禁，不负责模板渲染或替代模型自身的事实判断。
+
+[代码审查门禁示例](docs/examples.md#moonbit-最终上下文门禁示例)从仓库内两份
+真实文件读取证据。正常输入会触发模拟模型调用；源快照过期、路径越界或
+最终请求包含禁止内容时，进程退出码为 1，模型回调不会执行。
 
 ## 快速开始
 
@@ -102,7 +108,10 @@ MoonContext 不重新实现模板渲染器，也不发明新的上下文 DSL。�
 报告保存到发布构建物中。
 
 仓库中保留了早期的确定性上下文编译流水线，用于实验和兼容已有示例；当前
-项目主接口是 audit 命令，后续会围绕可复用策略、来源追踪和 CI 集成继续完善。
+命令行 `audit` 适合已有构建物；MoonBit `gate` 包适合在构造模型调用时
+核验来源并阻止未通过的内容继续流转。示例中的模型适配器只是本地回调，
+并没有发送网络请求。来源文件的读取、仓库版本固定及符号链接解析仍由
+可信的应用或 CI 层负责；调用方不能把未核验的路径和内容当作可信输入。
 
 ## 文档
 
@@ -121,6 +130,7 @@ moon fmt --check
 moon check --target all --deny-warn --warn-list=-implicit_impl_as_method-test_unqualified_package
 moon build --target all
 moon test --target all
+moon run examples/release_gate -- pass
 moon run cmd/main -- audit examples/audit/context.md \
   --policy examples/audit/policy.json
 ~~~

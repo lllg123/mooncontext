@@ -1,6 +1,9 @@
 import {
   "lllg123/mooncontext/audit",
+  "lllg123/mooncontext/gate",
   "moonbitlang/core/env",
+  "moonbitlang/async",
+  "moonbitlang/async/fs",
 }
 
 pkgtype(kind: "executable")

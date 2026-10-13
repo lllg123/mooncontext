@@ -1,0 +1,5 @@
+diff --git a/src/review.mbt b/src/review.mbt
+@@ -1,2 +1,4 @@
++  let report = audit(final_context, policy)
++  if report.has_failures(deny_warnings=true) { return }
+   send_to_model(final_context)

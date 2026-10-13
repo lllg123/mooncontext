@@ -29,8 +29,10 @@ markers without learning a new template language.
 }
 ~~~
 
-After the application renderer writes its outputs into build/context, a
-minimal pull-request job can audit the whole directory:
+The repository's [CI workflow](../.github/workflows/ci.yml) runs a real
+source-pinned gate and audits checked-in example artifacts. The following
+pull-request job is also runnable from a fresh checkout; replace its example
+inputs with your application's rendered files when integrating MoonContext:
 
 ~~~yaml
 name: Context audit
@@ -59,29 +61,31 @@ jobs:
       - name: Resolve dependencies
         run: moon update
 
-      - name: Render application contexts
-        run: ./scripts/render-contexts.sh build/context
+      - name: Verify pinned evidence before a model call
+        run: moon run examples/release_gate -- pass
 
       - name: Audit rendered contexts
         run: |
           moon run cmd/main -- audit \
-            build/context/system.md \
-            build/context/review.md \
-            --policy policy/context-audit.json \
+            examples/audit/context.md \
+            examples/audit/context-minimal.md \
+            --policy examples/audit/policy.json \
             --json \
-            --report build/context-audit.json
+            --report "$RUNNER_TEMP/context-audit.json"
 
       - name: Retain audit report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: context-audit-report
-          path: build/context-audit.json
+          path: ${{ runner.temp }}/context-audit.json
           if-no-files-found: error
 ~~~
 
-The audit step fails with status 1 when a context violates the policy and
-status 2 when an input, policy, or output is unavailable. The artifact step
+In a real application, render contexts before the audit step and replace
+the fixture paths with the resulting files; the repository does not ship a
+generic renderer script. The audit step fails with status 1 when a context
+violates the policy and status 2 when an input, policy, or output is unavailable. The artifact step
 uses always so a failed report remains available for diagnosis. Do not upload
 the rendered context itself when it may contain confidential customer data;
 upload only the report if the report's paths and messages are safe for the

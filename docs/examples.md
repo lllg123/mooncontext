@@ -2,24 +2,32 @@
 
 ## MoonBit 最终上下文门禁示例
 
-[release_gate/main.mbt](../examples/release_gate/main.mbt) 展示真实集成边界：
-应用先组装最终 Markdown 字符串，再把**同一个字符串**交给审计器；仅当
-`Report::has_failures(deny_warnings=true)` 为 `false` 时，才调用模拟的
-`send_to_model` 回调。示例不使用真实密钥或网络请求，实际应用只需将回调
-替换为发布动作或模型 API 调用。
+[release_gate/main.mbt](../examples/release_gate/main.mbt) 从仓库内的
+[审查规则](../examples/release_gate/fixtures/review-policy.md)和
+[代码变更](../examples/release_gate/fixtures/change.diff)读取证据，组装最终
+模型上下文。`gate` 核验每份完整源文件的固定指纹、摘录、来源 ID 与允许
+路径，然后对**最终要发送的同一字符串**运行文本审计。仅有成功返回的
+`ApprovedContext` 可以通过 `deliver` 调用模拟模型适配器。此示例不使用
+真实密钥或网络请求。
 
 从仓库根目录分别运行：
 
 ~~~text
 moon run examples/release_gate -- pass
-moon run examples/release_gate -- reject
+moon run examples/release_gate -- stale
+moon run examples/release_gate -- unsafe
+moon run examples/release_gate -- leak
 ~~~
 
-第一条打印 `status: ok` 和 `MODEL_CALL`，退出码为 0。第二条生成含 `TODO`
-与 `sk-` 的最终文本，打印 A1005 和 `BLOCKED`，退出码为 1，且**没有**
-`MODEL_CALL`。`main_wbtest.mbt` 进一步用计数回调断言：通过时只调用一次且
-传入与审计文本完全相同的内容，失败时一次也不调用。CI 中的 `moon test`
-会运行这两个测试。
+第一条打印源指纹、最终文本指纹及 `MODEL_CALL`，退出码为 0。后三条分别
+模拟源快照变化、路径越界、最终问题含 `TODO` 和 `sk-`；都打印 `BLOCKED`
+并返回 1，没有 `MODEL_CALL`。`main_wbtest.mbt` 验证通过时送出的内容
+与审计指纹一致，并覆盖三类失败。修改任一 fixture 后，固定指纹会使示例
+失败；只有重新审查内容并有意更新指纹，才可恢复通过。
+
+这里的指纹不是签名。`gate` 核验调用方提供的源快照，可信读取层仍须固定
+仓库修订、核验文件的真实路径（包括符号链接）并在调用模型前避免替换
+`ApprovedContext` 的文本。字符预算也不是 tokenizer 的 token 计数。
 
 ## CLI 构建物示例
 
