@@ -23,6 +23,8 @@ pub(all) struct Policy {
   allowed_root : String
   text_policy : @audit.Policy
   deny_warnings : Bool
+  required_rules : Array[String]
+  forbidden_instructions : Array[String]
 }
 
 ///|

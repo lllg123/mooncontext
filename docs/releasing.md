@@ -1,16 +1,11 @@
 # Release process
 
-MoonContext 0.1.0 releases a verified source tag; CI does not publish platform
-binaries. The tag contains the audit command, examples, policies, production
-workflow guide, and the checks used to verify them. The release scope is
-tracked in CHANGELOG.md.
+MoonContext 0.2.0 is a source package for MoonBit. A release is complete only
+after the GitHub commit, CI, and Mooncakes publication have been verified.
 
-## Reproduce a release check
+## Verify from a clean checkout
 
-Use the same MoonBit compiler version pinned in
-[the CI workflow](../.github/workflows/ci.yml). The workflow installs
-`0.10.14+7d59c7ec9` and resolves the exact dependency declared in `moon.mod`.
-For a fresh checkout, run from the repository root:
+Use a MoonBit toolchain with `moonc` 0.10.14 or newer. From the repository root:
 
 ```sh
 moon version --all
@@ -18,44 +13,36 @@ moon update
 moon fmt --check
 moon check --target all --deny-warn --warn-list=-implicit_impl_as_method-test_unqualified_package
 moon build --target all
-moon test --target all
+moon test --target all --warn-list=-implicit_impl_as_method-test_unqualified_package
 moon info
-moon run cmd/main -- audit examples/audit/context.md --budget 1800 \
-  --require "System rules" --require "Evidence" --forbid "TODO" \
-  --deny-warnings
+moon run examples/release_gate --target native -- pass
 ```
 
-Before publishing to Mooncakes, set the `repository` field in `moon.mod` to the
-public source repository, run the complete verification above, and publish the
-same clean revision. Verify the published package from a fresh project rather
-than relying only on the local checkout.
+The example uses a pinned historical Git commit, so CI and local clones need
+its history (`git fetch --unshallow` if the clone is shallow). It must produce
+`_build/release_gate/approved-context.md`. The `stale`, `unsafe`, and `leak`
+modes must fail without leaving that artifact. See [the trust boundary](trust-boundary.md)
+before connecting the gate to a real model or release system.
 
-The runnable audit example and production workflows are documented in
-[examples.md](examples.md) and
-[production-workflows.md](production-workflows.md). The dependency update step
-needs registry access on a fresh machine; subsequent checks and tests use the
-resolved local dependency.
+## Publish
 
-## Prepare and tag 0.1.0
+After the version in `moon.mod` and `CHANGELOG.md` agrees, CI is green, and
+the intended GitHub commit is visible:
 
-The 0.1.0 scope is recorded in CHANGELOG.md. Before creating the tag, confirm
-that the module metadata and the package version both report 0.1.0, and review
-the release report produced by the verification commands above.
+```sh
+moon whoami
+moon publish
+```
 
-1. Review the changes since the previous tag and confirm that `moon.mod` and
-   the package version both report 0.1.0.
-2. Confirm the CI workflow passes on the exact commit to be released.
-3. From a clean worktree, create and push an annotated semantic-version tag:
+Confirm that version 0.2.0 appears under `lllg123/mooncontext` on
+[Mooncakes](https://mooncakes.io/) and that a fresh project can add the
+published package:
 
-   ```sh
-   git status --short
-   git tag -a v0.1.0 -m "MoonContext v0.1.0"
-   git push origin v0.1.0
-   ```
+```sh
+moon add lllg123/mooncontext@0.2.0
+moon check --target all
+```
 
-4. Create a GitHub Release for that tag and summarize user-visible changes,
-   migration notes, and known limitations. GitHub provides source archives for
-   the tag; do not describe them as prebuilt CLI binaries.
-
-If the MoonBit toolchain or dependency pin changes, update the CI workflow and
-this guide together, then run the full fresh-checkout verification above.
+Only after publication is confirmed, create and push the matching Git tag
+`v0.2.0`. Do not publish a local build artifact containing private context:
+the CI artifact is made solely from public fixture text.

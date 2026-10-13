@@ -15,6 +15,8 @@ jobs:
     steps:
       - name: Check out source
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Install MoonBit
         uses: hustcer/setup-moonbit@v1
@@ -42,13 +44,15 @@ jobs:
 
       - name: Smoke-test examples
         run: |
-          moon run examples/release_gate -- pass
           for mode in stale unsafe leak; do
             if moon run examples/release_gate -- "$mode"; then
               echo "Expected release gate to block: $mode" >&2
               exit 1
             fi
+            test ! -e _build/release_gate/approved-context.md
           done
+          moon run examples/release_gate -- pass
+          test -s _build/release_gate/approved-context.md
           moon run cmd/main -- audit examples/audit/context.md \
             examples/audit/context-minimal.md \
             --policy examples/audit/policy.json
@@ -58,3 +62,10 @@ jobs:
             --json \
             --report "$RUNNER_TEMP/context-audit.json"
           test -s "$RUNNER_TEMP/context-audit.json"
+
+      - name: Retain approved example artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: approved-context-example
+          path: _build/release_gate/approved-context.md
+          if-no-files-found: error

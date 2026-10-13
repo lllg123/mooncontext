@@ -1,0 +1,11 @@
+import {
+  "lllg123/mooncontext/gate",
+  "moonbitlang/async/process",
+}
+
+import {
+  "lllg123/mooncontext/audit",
+  "moonbitlang/async",
+} for "test"
+
+supported_targets = "native"

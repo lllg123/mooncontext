@@ -2,6 +2,18 @@
 
 All notable changes to MoonContext are documented in this file.
 
+## [0.2.0] - 2026-10-13
+
+- Added a native Git-snapshot gate that reads ordinary blobs from a reviewed
+  full commit, rejects symlinks and traversal paths, and pins each source ID
+  to an exact SHA-256 digest before approving a final context.
+- Added rule-field checks so cited code may contain literal template syntax
+  or instruction-only markers without bypassing global secret markers.
+- Replaced the print-only release demonstration with a verified local build
+  artifact; CI exercises failure paths and uploads only the approved example.
+- Added regression tests for stale pins, unknown revisions, unpinned citations,
+  fenced code examples, and missing system rules.
+
 ## [0.1.0] - 2026-09-24
 
 The first release focused on deterministic auditing at the boundary between a
@@ -35,5 +47,3 @@ rendered context and a model request.
   from a directory implicitly.
 - A report fingerprint supports build traceability but is not a digital
   signature or an authorization decision.
-
-[0.1.0]: https://github.com/lllg123/mooncontext/releases/tag/v0.1.0

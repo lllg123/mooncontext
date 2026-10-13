@@ -283,7 +283,6 @@ pub fn audit(text : String, policy : Policy) -> Report {
   let mut heading_count = 0
   let mut inside_fence : (Char, Int)? = None
   for line_number, line in lines {
-    check_placeholders(line, line_number + 1, issues)
     match inside_fence {
       Some((fence, minimum)) => {
         if fence_closes(line, fence, minimum) {
@@ -300,6 +299,7 @@ pub fn audit(text : String, policy : Policy) -> Report {
       }
       None => ()
     }
+    check_placeholders(line, line_number + 1, issues)
     match heading_name(line) {
       Some(name) => {
         heading_count += 1

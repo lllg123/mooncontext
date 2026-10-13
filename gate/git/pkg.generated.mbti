@@ -1,0 +1,53 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "lllg123/mooncontext/gate/git"
+
+import {
+  "lllg123/mooncontext/gate",
+}
+
+// Values
+pub async fn approve(Request, Policy) -> Result[ApprovedSnapshot, SnapshotFailure]
+
+// Errors
+
+// Types and methods
+pub struct ApprovedSnapshot {
+  // private fields
+}
+pub fn ApprovedSnapshot::report(Self) -> @gate.Report
+pub fn ApprovedSnapshot::revision(Self) -> String
+pub fn ApprovedSnapshot::text(Self) -> String
+
+pub(all) struct Citation {
+  id : String
+  excerpt : String
+}
+
+pub(all) struct Policy {
+  repo_root : String
+  revision : String
+  bundle : @gate.Policy
+  pins : Array[SourcePin]
+}
+
+pub(all) struct Request {
+  system_rules : String
+  question : String
+  citations : Array[Citation]
+}
+
+pub(all) enum SnapshotFailure {
+  InvalidPolicy(String)
+  SourceUnavailable(String)
+  Rejected(@gate.Report)
+}
+
+pub(all) struct SourcePin {
+  id : String
+  path : String
+  fingerprint : String
+}
+
+// Type aliases
+
+// Traits

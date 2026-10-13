@@ -2,13 +2,14 @@
 
 ## MoonBit 最终上下文门禁示例
 
-[release_gate/main.mbt](../examples/release_gate/main.mbt) 从仓库内的
+[release_gate/main.mbt](../examples/release_gate/main.mbt) 从仓库指定提交中的
 [审查规则](../examples/release_gate/fixtures/review-policy.md)和
 [代码变更](../examples/release_gate/fixtures/change.diff)读取证据，组装最终
-模型上下文。`gate` 核验每份完整源文件的固定指纹、摘录、来源 ID 与允许
-路径，然后对**最终要发送的同一字符串**运行文本审计。仅有成功返回的
-`ApprovedContext` 可以通过 `deliver` 调用模拟模型适配器。此示例不使用
-真实密钥或网络请求。
+模型上下文。`gate/git` 使用受审查策略中的提交、路径和指纹，从 Git blob
+而不是可变工作区读取正文，并拒绝符号链接；`gate` 核验摘录和具体系统规则，
+再对**最终要发布的同一字符串**运行文本审计。通过时实际写入
+`_build/release_gate/approved-context.md`，复读文件并核对内容指纹。CI 只在
+门禁成功后上传该示例构建物；没有真实模型调用或客户数据。
 
 从仓库根目录分别运行：
 
@@ -19,15 +20,15 @@ moon run examples/release_gate -- unsafe
 moon run examples/release_gate -- leak
 ~~~
 
-第一条打印源指纹、最终文本指纹及 `MODEL_CALL`，退出码为 0。后三条分别
-模拟源快照变化、路径越界、最终问题含 `TODO` 和 `sk-`；都打印 `BLOCKED`
-并返回 1，没有 `MODEL_CALL`。`main_wbtest.mbt` 验证通过时送出的内容
-与审计指纹一致，并覆盖三类失败。修改任一 fixture 后，固定指纹会使示例
-失败；只有重新审查内容并有意更新指纹，才可恢复通过。
+第一条打印源指纹、最终文本指纹和 `RELEASE_ARTIFACT`，退出码为 0。
+后三条分别模拟错误的源指纹、越界路径、最终问题含 `TODO` 和 `sk-`；
+都打印 `BLOCKED`，返回 1，且不会留下旧产物。测试验证真实 Git blob
+读取、审计指纹和三种失败路径。工作区中的 fixture 改动不会偷偷影响
+固定快照；使用新的来源内容须审查并更新策略中的提交与指纹。
 
-这里的指纹不是签名。`gate` 核验调用方提供的源快照，可信读取层仍须固定
-仓库修订、核验文件的真实路径（包括符号链接）并在调用模型前避免替换
-`ApprovedContext` 的文本。字符预算也不是 tokenizer 的 token 计数。
+这里的指纹不是签名。`gate/git` 信任代码中配置的策略与本地 Git 仓库；
+它不验证远端仓库身份，也不能强制外部应用一定使用获批构建物。字符预算
+不是 tokenizer 的 token 计数。见[信任边界](trust-boundary.md)。
 
 ## CLI 构建物示例
 

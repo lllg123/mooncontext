@@ -31,7 +31,10 @@ fn valid_relative_path(path : String) -> Bool {
 }
 
 ///|
-fn path_within_root(root : String, path : String) -> Bool {
+
+///|
+/// Check a repository-relative source path before filesystem or Git access.
+pub fn source_path_is_allowed(root : String, path : String) -> Bool {
   valid_relative_path(root) &&
   valid_relative_path(path) &&
   path.has_prefix(root + "/")

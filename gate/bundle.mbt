@@ -74,6 +74,8 @@ fn render(request : Request) -> String {
 ///     allowed_root: "docs",
 ///     text_policy: @audit.Policy::new(char_budget=1000, required_markers=[]),
 ///     deny_warnings: true,
+///     required_rules: ["Cite evidence."],
+///     forbidden_instructions: ["TODO"],
 ///   }
 ///   assert_true(approve(request, policy) is Ok(_))
 /// }
@@ -93,6 +95,38 @@ pub fn approve(
       findings, "G0001", "", "allowed root must be a canonical relative path",
     )
   }
+  if request.system_rules == "" || request.question == "" {
+    add_finding(
+      findings, "G1007", "", "system rules and task must not be empty",
+    )
+  }
+  for marker in policy.required_rules {
+    if marker == "" {
+      add_finding(findings, "G0002", "", "required rule must not be empty")
+    } else if !request.system_rules.contains(marker) {
+      add_finding(
+        findings,
+        "G1008",
+        "",
+        "required system rule is missing: `\{marker}`",
+      )
+    }
+  }
+  for marker in policy.forbidden_instructions {
+    if marker == "" {
+      add_finding(
+        findings, "G0003", "", "forbidden instruction must not be empty",
+      )
+    } else if request.system_rules.contains(marker) ||
+      request.question.contains(marker) {
+      add_finding(
+        findings,
+        "G1009",
+        "",
+        "forbidden instruction found: `\{marker}`",
+      )
+    }
+  }
   for evidence in request.evidence {
     if !valid_evidence_id(evidence.id) {
       add_finding(
@@ -106,7 +140,7 @@ pub fn approve(
     } else {
       ids[evidence.id] = true
     }
-    if !path_within_root(policy.allowed_root, evidence.path) {
+    if !source_path_is_allowed(policy.allowed_root, evidence.path) {
       add_finding(
         findings,
         "G1004",

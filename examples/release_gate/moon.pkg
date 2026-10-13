@@ -1,7 +1,9 @@
 import {
   "lllg123/mooncontext/audit",
   "lllg123/mooncontext/gate",
+  "lllg123/mooncontext/gate/git",
   "moonbitlang/core/env",
+  "moonbitlang/core/encoding/utf8",
   "moonbitlang/async",
   "moonbitlang/async/fs",
 }

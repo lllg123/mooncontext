@@ -136,6 +136,29 @@ test "fenced code headings are not treated as document headings" {
 }
 
 ///|
+test "literal template syntax in fenced evidence is not an unresolved placeholder" {
+  let text = "# Code review\n~~~js\nconst value = `$" +
+    "{name}`;\nconst view = `{{ title }}`;\n~~~\n"
+  let report = @audit.audit(
+    text,
+    @audit.Policy::new(char_budget=200, required_markers=[]),
+  )
+  assert_false(
+    report.issues.any(issue => issue.code == "A1003" || issue.code == "A1004"),
+  )
+  let outside_text = StringBuilder()
+  outside_text.write_string(text)
+  outside_text.write_string("Unresolved: ")
+  outside_text.write_char('$')
+  outside_text.write_string("{missing}")
+  let outside = @audit.audit(
+    outside_text.to_string(),
+    @audit.Policy::new(char_budget=200, required_markers=[]),
+  )
+  assert_true(outside.issues.any(issue => issue.code == "A1003"))
+}
+
+///|
 test "mixed CRLF LF and CR line endings preserve heading positions" {
   let report = @audit.audit(
     "### Review\r\nText\n### Review\rDone",

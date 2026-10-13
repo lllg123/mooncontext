@@ -51,6 +51,8 @@ jobs:
     steps:
       - name: Check out source
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # gate/git reads the pinned fixture commit
 
       - name: Install MoonBit
         uses: hustcer/setup-moonbit@v1
@@ -63,6 +65,13 @@ jobs:
 
       - name: Verify pinned evidence before a model call
         run: moon run examples/release_gate -- pass
+
+      - name: Retain approved example artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: approved-context-example
+          path: _build/release_gate/approved-context.md
+          if-no-files-found: error
 
       - name: Audit rendered contexts
         run: |
@@ -82,7 +91,9 @@ jobs:
           if-no-files-found: error
 ~~~
 
-In a real application, render contexts before the audit step and replace
+The uploaded example contains only public fixtures. Do not upload customer
+or secret-bearing contexts to a public CI artifact. In a real application,
+render contexts before the audit step and replace
 the fixture paths with the resulting files; the repository does not ship a
 generic renderer script. The audit step fails with status 1 when a context
 violates the policy and status 2 when an input, policy, or output is unavailable. The artifact step

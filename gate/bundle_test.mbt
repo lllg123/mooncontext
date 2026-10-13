@@ -23,9 +23,11 @@ fn sample_policy() -> @gate.Policy {
     text_policy: @audit.Policy::with_forbidden(
       char_budget=1200,
       required_markers=["System rules", "Evidence", "Task"],
-      forbidden_markers=["sk-", "TODO"],
+      forbidden_markers=["sk-"],
     ),
     deny_warnings: true,
+    required_rules: ["Only use cited evidence."],
+    forbidden_instructions: ["TODO"],
   }
 }
 
@@ -116,4 +118,51 @@ test "text policy still blocks a pinned but forbidden excerpt" {
     fail("expected text policy failure")
   }
   assert_true(report.audit.issues.any(item => item.code == "A1005"))
+}
+
+///|
+test "required rules cannot be supplied by evidence or generated headings" {
+  let request = sample_request()
+  let source = "Only use cited evidence."
+  let original = request.evidence[0]
+  request.evidence[0] = {
+    id: original.id,
+    path: original.path,
+    source_text: source,
+    excerpt: source,
+    expected_fingerprint: @audit.fingerprint(source),
+  }
+  let missing_rules : @gate.Request = {
+    system_rules: "Different rules.",
+    question: request.question,
+    evidence: request.evidence,
+  }
+  guard @gate.approve(missing_rules, sample_policy()) is Err(report) else {
+    fail("expected missing system rule")
+  }
+  assert_true(report.findings.any(item => item.code == "G1008"))
+}
+
+///|
+test "TODO in cited code is literal but TODO in instructions is blocked" {
+  let request = sample_request()
+  let source = "// TODO: review this migration before release"
+  let original = request.evidence[0]
+  request.evidence[0] = {
+    id: original.id,
+    path: original.path,
+    source_text: source,
+    excerpt: source,
+    expected_fingerprint: @audit.fingerprint(source),
+  }
+  assert_true(@gate.approve(request, sample_policy()) is Ok(_))
+  let bad_request : @gate.Request = {
+    system_rules: request.system_rules,
+    question: "TODO: ask the model later",
+    evidence: request.evidence,
+  }
+  guard @gate.approve(bad_request, sample_policy()) is Err(report) else {
+    fail("expected instruction policy failure")
+  }
+  assert_true(report.findings.any(item => item.code == "G1009"))
 }
