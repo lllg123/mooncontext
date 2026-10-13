@@ -89,3 +89,26 @@ test "batch output handles all unreadable and empty artifact batches" {
     ),
   )
 }
+
+///|
+test "audit JSON quotes every control character in an accepted policy" {
+  let parsed_policy = @audit.parse_policy_json(
+    "{\"version\":1,\"char_budget\":100,\"forbidden_markers\":[\"bad\\u000cmark\"]}",
+  )
+  guard parsed_policy is Ok(config) else {
+    fail("expected policy with escaped form feed to parse")
+  }
+  let report = @audit.audit("bad\u{000c}mark", config.policy)
+  assert_true(report.has_failures(deny_warnings=true))
+  let output = audit_json("context.md", report)
+  let parsed = @json.parse(output)
+  guard parsed is Object(_) else { fail("audit report must be valid JSON") }
+  assert_false(output.contains("\u{000c}"))
+  for code in 0..<32 {
+    let value = StringBuilder()
+    value.write_char(code.unsafe_to_char())
+    let encoded = json_quote(value.to_string())
+    let decoded : String = @json.from_json(@json.parse(encoded))
+    assert_eq(decoded, value.to_string())
+  }
+}

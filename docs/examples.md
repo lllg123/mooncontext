@@ -1,5 +1,28 @@
 # Runnable audit examples
 
+## MoonBit 最终上下文门禁示例
+
+[release_gate/main.mbt](../examples/release_gate/main.mbt) 展示真实集成边界：
+应用先组装最终 Markdown 字符串，再把**同一个字符串**交给审计器；仅当
+`Report::has_failures(deny_warnings=true)` 为 `false` 时，才调用模拟的
+`send_to_model` 回调。示例不使用真实密钥或网络请求，实际应用只需将回调
+替换为发布动作或模型 API 调用。
+
+从仓库根目录分别运行：
+
+~~~text
+moon run examples/release_gate -- pass
+moon run examples/release_gate -- reject
+~~~
+
+第一条打印 `status: ok` 和 `MODEL_CALL`，退出码为 0。第二条生成含 `TODO`
+与 `sk-` 的最终文本，打印 A1005 和 `BLOCKED`，退出码为 1，且**没有**
+`MODEL_CALL`。`main_wbtest.mbt` 进一步用计数回调断言：通过时只调用一次且
+传入与审计文本完全相同的内容，失败时一次也不调用。CI 中的 `moon test`
+会运行这两个测试。
+
+## CLI 构建物示例
+
 The audit examples are ordinary Markdown files:
 [context.md](../examples/audit/context.md) and
 [context-minimal.md](../examples/audit/context-minimal.md). They can be edited by a prompt

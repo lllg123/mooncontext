@@ -109,3 +109,59 @@ test "preserves one-based positions across lines and Unicode" {
   assert_eq(issue.line, 2)
   assert_eq(issue.column, 3)
 }
+
+///|
+test "strict mode rejects duplicate ATX headings at levels three through six" {
+  for hashes in ["###", "####", "#####", "######"] {
+    let report = @audit.audit(
+      "\{hashes} Review\n\{hashes} Review",
+      @audit.Policy::new(char_budget=100, required_markers=[]),
+    )
+    assert_eq(report.heading_count, 2)
+    assert_true(
+      report.issues.any(issue => issue.code == "A2001" && issue.line == 2),
+    )
+    assert_true(report.has_failures(deny_warnings=true))
+  }
+}
+
+///|
+test "fenced code headings are not treated as document headings" {
+  let report = @audit.audit(
+    "### Review\n```md\n### Review\n```\n~~~\n### Review\n~~~",
+    @audit.Policy::new(char_budget=100, required_markers=[]),
+  )
+  assert_eq(report.heading_count, 1)
+  assert_false(report.has_failures(deny_warnings=true))
+}
+
+///|
+test "mixed CRLF LF and CR line endings preserve heading positions" {
+  let report = @audit.audit(
+    "### Review\r\nText\n### Review\rDone",
+    @audit.Policy::new(char_budget=100, required_markers=[]),
+  )
+  assert_eq(report.heading_count, 2)
+  assert_true(
+    report.issues.any(issue => issue.code == "A2001" && issue.line == 3),
+  )
+  assert_true(report.has_failures(deny_warnings=true))
+}
+
+///|
+test "forbidden strings spanning accepted newline styles fail the gate" {
+  let policy = @audit.Policy::with_forbidden(
+    char_budget=100,
+    required_markers=[],
+    forbidden_markers=["secret\nkey"],
+  )
+  for separator in ["\n", "\r\n", "\r"] {
+    let report = @audit.audit("safe\nsecret\{separator}key", policy)
+    assert_true(report.has_failures(deny_warnings=true))
+    assert_true(
+      report.issues.any(issue => {
+        issue.code == "A1005" && issue.line == 2 && issue.column == 1
+      }),
+    )
+  }
+}

@@ -1,0 +1,8 @@
+import {
+  "lllg123/mooncontext/audit",
+  "moonbitlang/core/env",
+}
+
+pkgtype(kind: "executable")
+
+supported_targets = "native"

@@ -21,32 +21,120 @@ fn line_characters(line : String) -> Array[Char] {
 fn heading_name(line : String) -> String? {
   let chars = line_characters(line)
   let mut start = 0
-  if chars.length() >= 2 && chars[0] == '#' && chars[1] == ' ' {
-    start = 2
-  } else if chars.length() >= 3 &&
-    chars[0] == '#' &&
-    chars[1] == '#' &&
-    chars[2] == ' ' {
-    start = 3
-  } else {
+  while start < chars.length() && start < 4 && chars[start] == ' ' {
+    start += 1
+  }
+  if start > 3 {
     return None
   }
+  let mut hashes = start
+  while hashes < chars.length() && chars[hashes] == '#' {
+    hashes += 1
+  }
+  if hashes == start ||
+    hashes - start > 6 ||
+    (hashes < chars.length() && !is_markdown_space(chars[hashes])) {
+    return None
+  }
+  start = hashes
+  while start < chars.length() && is_markdown_space(chars[start]) {
+    start += 1
+  }
+  let mut end = chars.length()
+  while end > start && is_markdown_space(chars[end - 1]) {
+    end -= 1
+  }
+  let mut closing = end
+  while closing > start && chars[closing - 1] == '#' {
+    closing -= 1
+  }
+  if closing < end &&
+    (closing == start || is_markdown_space(chars[closing - 1])) {
+    end = closing
+    while end > start && is_markdown_space(chars[end - 1]) {
+      end -= 1
+    }
+  }
   let value = StringBuilder()
-  for index in start..<chars.length() {
+  for index in start..<end {
     value.write_char(chars[index])
   }
   Some(value.to_string())
 }
 
 ///|
+fn is_markdown_space(ch : Char) -> Bool {
+  ch == ' ' || ch == '\t'
+}
+
+///|
+fn fence_start(line : String) -> (Char, Int)? {
+  let chars = line_characters(line)
+  let mut index = 0
+  while index < chars.length() && index < 4 && chars[index] == ' ' {
+    index += 1
+  }
+  if index > 3 ||
+    index >= chars.length() ||
+    (chars[index] != '`' && chars[index] != '~') {
+    return None
+  }
+  let fence = chars[index]
+  let mut end = index
+  while end < chars.length() && chars[end] == fence {
+    end += 1
+  }
+  if end - index >= 3 {
+    Some((fence, end - index))
+  } else {
+    None
+  }
+}
+
+///|
+fn fence_closes(line : String, fence : Char, minimum : Int) -> Bool {
+  let chars = line_characters(line)
+  let mut index = 0
+  while index < chars.length() && index < 4 && chars[index] == ' ' {
+    index += 1
+  }
+  if index > 3 {
+    return false
+  }
+  let start = index
+  while index < chars.length() && chars[index] == fence {
+    index += 1
+  }
+  if index - start < minimum {
+    return false
+  }
+  while index < chars.length() {
+    if !is_markdown_space(chars[index]) {
+      return false
+    }
+    index += 1
+  }
+  true
+}
+
+///|
 fn split_lines(text : String) -> Array[String] {
   let lines : Array[String] = []
   let mut current = StringBuilder()
+  let mut after_cr = false
   for ch in text {
-    if ch == '\n' {
+    if ch == '\r' {
       lines.push(current.to_string())
       current = StringBuilder()
+      after_cr = true
+    } else if ch == '\n' {
+      if !after_cr {
+        lines.push(current.to_string())
+        current = StringBuilder()
+      }
+      after_cr = false
     } else {
+      after_cr = false
       current.write_char(ch)
     }
   }
@@ -101,36 +189,49 @@ fn check_placeholders(
 }
 
 ///|
-/// Find the first 1-based character column containing a marker.
-fn marker_column(line : String, marker : String) -> Int? {
-  let line_chars = line_characters(line)
-  let marker_chars = line_characters(marker)
-  if marker_chars.length() == 0 || line_chars.length() < marker_chars.length() {
-    return None
-  }
-  let last_start = line_chars.length() - marker_chars.length()
-  for start in 0..<=last_start {
-    let mut matches = true
-    for offset in 0..<marker_chars.length() {
-      if line_chars[start + offset] != marker_chars[offset] {
-        matches = false
-      }
-    }
-    if matches {
-      return Some(start + 1)
-    }
-  }
-  None
+priv struct ScannableText {
+  chars : Array[Char]
+  lines : Array[Int]
+  columns : Array[Int]
 }
 
 ///|
-/// Check for markers that must never reach a model request.
+/// Normalize newline spelling for matching, without changing the audited bytes.
+fn scannable_text(text : String) -> ScannableText {
+  let chars : Array[Char] = []
+  let lines : Array[Int] = []
+  let columns : Array[Int] = []
+  let mut line = 1
+  let mut column = 1
+  let mut after_cr = false
+  for ch in text {
+    if ch == '\n' && after_cr {
+      after_cr = false
+      continue
+    }
+    let normalized = if ch == '\r' { '\n' } else { ch }
+    chars.push(normalized)
+    lines.push(line)
+    columns.push(column)
+    if normalized == '\n' {
+      line += 1
+      column = 1
+    } else {
+      column += 1
+    }
+    after_cr = ch == '\r'
+  }
+  { chars, lines, columns, }
+}
+
+///|
+/// Search the entire final payload, including matches spanning line endings.
 fn check_forbidden_markers(
-  line : String,
-  line_number : Int,
+  text : String,
   forbidden_markers : Array[String],
   issues : Array[Issue],
 ) -> Unit {
+  let source = scannable_text(text)
   for marker in forbidden_markers {
     if marker == "" {
       add_issue(
@@ -138,21 +239,32 @@ fn check_forbidden_markers(
         Error,
         "A0003",
         "forbidden marker must not be empty",
-        line_number,
+        1,
         1,
       )
-    } else {
-      match marker_column(line, marker) {
-        Some(column) =>
-          add_issue(
-            issues,
-            Error,
-            "A1005",
-            "forbidden marker found: `\{marker}`",
-            line_number,
-            column,
-          )
-        None => ()
+      continue
+    }
+    let needle = scannable_text(marker).chars
+    if needle.length() > source.chars.length() {
+      continue
+    }
+    for start in 0..<=(source.chars.length() - needle.length()) {
+      let mut matches = true
+      for offset in 0..<needle.length() {
+        if source.chars[start + offset] != needle[offset] {
+          matches = false
+          break
+        }
+      }
+      if matches {
+        add_issue(
+          issues,
+          Error,
+          "A1005",
+          "forbidden marker found: `\{marker}`",
+          source.lines[start],
+          source.columns[start],
+        )
       }
     }
   }
@@ -169,14 +281,25 @@ pub fn audit(text : String, policy : Policy) -> Report {
   let lines = split_lines(text)
   let headings : Map[String, Int] = Map([])
   let mut heading_count = 0
+  let mut inside_fence : (Char, Int)? = None
   for line_number, line in lines {
     check_placeholders(line, line_number + 1, issues)
-    check_forbidden_markers(
-      line,
-      line_number + 1,
-      policy.forbidden_markers,
-      issues,
-    )
+    match inside_fence {
+      Some((fence, minimum)) => {
+        if fence_closes(line, fence, minimum) {
+          inside_fence = None
+        }
+        continue
+      }
+      None => ()
+    }
+    match fence_start(line) {
+      Some(fence) => {
+        inside_fence = Some(fence)
+        continue
+      }
+      None => ()
+    }
     match heading_name(line) {
       Some(name) => {
         heading_count += 1
@@ -196,6 +319,7 @@ pub fn audit(text : String, policy : Policy) -> Report {
       None => ()
     }
   }
+  check_forbidden_markers(text, policy.forbidden_markers, issues)
   let count = character_count(text)
   if policy.char_budget <= 0 {
     add_issue(

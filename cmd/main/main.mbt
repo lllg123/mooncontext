@@ -278,20 +278,7 @@ async fn compile(options : CommandOptions) -> Compilation {
 
 ///|
 fn json_quote(value : String) -> String {
-  let output = StringBuilder()
-  output.write_char('"')
-  for ch in value {
-    match ch {
-      '"' => output.write_string("\\\"")
-      '\\' => output.write_string("\\\\")
-      '\n' => output.write_string("\\n")
-      '\r' => output.write_string("\\r")
-      '\t' => output.write_string("\\t")
-      value => output.write_char(value)
-    }
-  }
-  output.write_char('"')
-  output.to_string()
+  @json.to_json(value).stringify()
 }
 
 ///|
